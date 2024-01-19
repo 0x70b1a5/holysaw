@@ -1,7 +1,7 @@
 import React from 'react';
 
 import { useHsStore } from './store/store';
-import { generateValues, playValues } from './utils/play';
+import { playSong } from './utils/play';
 import Sidebar from './components/Sidebar';
 import TextCell from './components/TextCell';
 
@@ -22,9 +22,7 @@ function App() {
   return (
     <div className="flex" id='main'>
       <Sidebar onPlay={(preambles) => {
-        const o = generateValues(grid, parser, preambles)
-        setOutput(o.join(' '))
-        playValues(grid)
+        playSong(grid, parser, preambles)
       }} />
       <div className="flex flex" id='container'>
         <div className="flex flex-col" id='left-bar'>
