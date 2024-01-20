@@ -18,7 +18,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onPlay }) => {
           setPreambles(newPreambles);
         }} className="border border-gray-300 p-2 m-0 w-full" />
       ))}
-      <input type="text" value={newPreamble} onChange={(e) => setNewPreamble(e.target.value)} className="border border-gray-300 p-2 m-0 w-full" />
+      <input type="text" value={newPreamble} onChange={(e) => setNewPreamble(e.target.value)} className="border border-gray-300 p-2 m-0 mt-2 w-full" />
       <button className="border border-gray-300 p-2 m-0 w-full bg-green-400" onClick={() => {
         setPreambles([...preambles, newPreamble]);
         setNewPreamble('');

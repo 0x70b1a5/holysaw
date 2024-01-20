@@ -4,6 +4,7 @@ import { useHsStore } from './store/store';
 import { playSong } from './utils/play';
 import Sidebar from './components/Sidebar';
 import TextCell from './components/TextCell';
+import ExpandoBox from './components/ExpandoBox';
 
 // Main App component
 function App() {
@@ -20,35 +21,16 @@ function App() {
   }
 
   return (
-    <div className="flex" id='main'>
+    <div className="flex w-screen h-screen" id='main'>
       <Sidebar onPlay={(preambles) => {
         playSong(grid, parser, preambles)
       }} />
-      <div className="flex flex" id='container'>
-        <div className="flex flex-col" id='left-bar'>
-          <TextCell
-            text=""
-            onChange={() => {}}
-            readonly />
-          {grid[0].map((_, index) => (
-            <TextCell
-              key={index}
-              active={index === timeIndex}
-              text={String(index + 1)}
-              onChange={() => {}}
-              readonly
-            />
-          ))}
-          
-          <button onClick={addCellToRows} className='border border-gray-300 border-t-0 border-l-0 p-2 m-0 w-16'>+</button>
-        </div>
+      <div className='flex flex-col grow align-self-stretch overflow-y-auto' id='container'>
         {grid.map((row, rindex) => (
-          <div key={rindex} className="flex flex-col">
-            <TextCell
-              text={`${rindex}`}
-              onChange={() => {}}
-              readonly
-            />
+          <div key={rindex} className="flex grow align-self-stretch">
+            <ExpandoBox>
+              {rindex}
+            </ExpandoBox>
             {row.map((cell, cindex) => (
               <TextCell
                 key={cindex}
@@ -67,8 +49,15 @@ function App() {
             ))}
           </div>
         ))}
-        <button onClick={addRow} className='border border-gray-300 border-t-0 border-l-0 p-2 m-0 w-16'>+</button>
+        <button 
+          onClick={addRow} 
+          className='align-self-stretch p-2 m-0 hover:bg-gray-200'
+        >+</button>
       </div> {/* container */}
+      <button 
+        onClick={addCellToRows} 
+        className='p-2 m-0 hover:bg-gray-200'
+      >+</button>
     </div> // main
   );
 }
