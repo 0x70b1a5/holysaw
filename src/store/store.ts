@@ -12,24 +12,16 @@ export interface HsStore {
     setFocusedRow: (newFocusedRow: number) => void
     setTimeIndex: (newTimeIndex: number) => void
     parser: Parser
-    preambles: string[]
-    setPreambles: (preamble: string[]) => void
+    preamble: string
+    setPreamble: (preamble: string) => void
     output: string
     setOutput: (output: string) => void
-    tickRate: number
-    setTickRate: (tickRate: number) => void
-    tuning: number
-    setTuning: (tuning: number) => void
 }
 
 export const useHsStore = create<HsStore>()(
     (set, get) => ({
         get,
         set,
-        tuning: 440,
-        setTuning: (tuning: number) => set({ tuning }),
-        tickRate: 1000,
-        setTickRate: (tickRate: number) => set({ tickRate }),
         output: '',
         setOutput: (output: string) => set({ output }),
         grid: [
@@ -48,7 +40,7 @@ export const useHsStore = create<HsStore>()(
         setFocusedRow: (focusedRow: number) => set({ focusedRow }),
         setTimeIndex: (timeIndex: number) => set({ timeIndex }),
         parser: parser(),
-        preambles: [],
-        setPreambles: (preambles: string[]) => set({ preambles })
+        preamble: `rowMs = 1000\ntone = 440`,
+        setPreamble: (preamble: string) => set({ preamble })
     })
 );

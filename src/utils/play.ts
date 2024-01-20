@@ -45,31 +45,31 @@ export const playSong = (song: Grid, parser: Parser, preambles: string[]) => {
     parser.clear();
     parser.evaluate(preambles.join('\n'));
     const fns = getFnsFromGrid(song);
-    let lengthOfSoundInSeconds = song.length;
     const SAMPLE_RATE = 44100;
-    const lengthOfSoundInSamples = lengthOfSoundInSeconds * SAMPLE_RATE;
-    const audioContext = new window.AudioContext();
-    // TODO: tickRate should be a variable
-    const audioBuffer = audioContext.createBuffer(1, lengthOfSoundInSamples, SAMPLE_RATE);
-    // Fill the AudioBuffer with y values
-    let log = ``
-    for (let secondsIndex = 0; secondsIndex < lengthOfSoundInSeconds; secondsIndex++) {
-        log += `secondsIndex: ${secondsIndex}\n`
-        let fnForThisSecond = fns[secondsIndex];
-        log += `fnForThisSecond: ${fnForThisSecond}\n`
-        parser.evaluate(fnForThisSecond);
-        for (let sample = secondsIndex * SAMPLE_RATE; sample < secondsIndex * SAMPLE_RATE + SAMPLE_RATE; sample++) {
-            const x = sample / SAMPLE_RATE;
-            for (let fn = 0; fn <= secondsIndex; fn++) {
+    const MS_PER_SECOND = 1000;
+    const yValues = [];
+    let log = ''
+    for (let row = 0; row < song.length; row++) {
+        parser.evaluate(fns[row]);
+        const rowMs = parser.get('rowMs');
+        const rowSamples = rowMs * SAMPLE_RATE / MS_PER_SECOND;
+        log += `${rowMs}ms, ${rowSamples} samples\n`
+        for (let sample = 0; sample < rowSamples; sample++) {
+            const x = row + sample / rowSamples;
+            for (let fn = 0; fn <= row; fn++) {
                 parser.evaluate(`unlikelyFunctionNameForStepping${fn}(${x})`);
             }
             const y = parser.get('y');
-            log += `x: ${x}, y: ${y}\n`
-            // debugger;
-            audioBuffer.getChannelData(0)[sample] = y;
+            yValues.push(y);
         }
     }
     console.log(log);
+
+    const audioContext = new window.AudioContext();
+    const audioBuffer = audioContext.createBuffer(1, yValues.length, SAMPLE_RATE);
+    for (let sample = 0; sample < yValues.length; sample++) {
+        audioBuffer.getChannelData(0)[sample] = yValues[sample];
+    }
 
     // Convert the AudioBuffer to a .wav file
     const wav = toWav(audioBuffer);
