@@ -625,8 +625,20 @@ video {
   width: 5rem;
 }
 
+.w-1 {
+  width: 0.25rem;
+}
+
+.flex-shrink-0 {
+  flex-shrink: 0;
+}
+
 .grow {
   flex-grow: 1;
+}
+
+.grow-0 {
+  flex-grow: 0;
 }
 
 .resize {
@@ -794,6 +806,16 @@ video {
 
 .italic {
   font-style: italic;
+}
+
+.text-gray-800 {
+  --tw-text-opacity: 1;
+  color: rgb(31 41 55 / var(--tw-text-opacity));
+}
+
+.text-gray-400 {
+  --tw-text-opacity: 1;
+  color: rgb(156 163 175 / var(--tw-text-opacity));
 }
 
 .hover\:bg-gray-200:hover {

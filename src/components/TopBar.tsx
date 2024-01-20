@@ -10,7 +10,7 @@ const TopBar: React.FC = () => {
   }
 
   return <div className="flex grow self-stretch place-items-center place-content-center">
-    <div className="px-4 text-4xl font-bold italic bg-green-100 self-stretch place-items-center place-content-center flex">HOLYSAW&trade;</div>
+    <div className="px-4 text-4xl font-bold italic self-stretch place-items-center place-content-center flex">HOLYSAW&trade;</div>
     <textarea 
       value={preamble} 
       onChange={(e) => setPreamble(e.target.value)} 

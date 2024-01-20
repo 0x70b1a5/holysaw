@@ -20,22 +20,22 @@ export const playSequence = (baseFrequency: number, multipliers: number[]) => {
     }, multipliers.length * 1000);
 }
 
-export const getFnsFromGrid = (grid: Grid) => {
+export const getRowsAsFns = (grid: Grid) => {
     const fns: string[] = [];
-    grid.forEach((second, secondIndex) => {
-        let secondAsFn = `unlikelyFunctionNameForStepping${secondIndex}(x) = [`
-        second.forEach((cell, cellIndex) => {
+    grid.forEach((row, idx) => {
+        let rowAsFn = `mathjsFnForRowNumber${idx}(x) = [`
+        row.cells.forEach((cell, cellIndex) => {
             if (!cell) return;
             try {
-                console.log({ secondIndex, cellIndex, cell});
-                secondAsFn += `${cell}, `;
+                console.log({ secondIndex: idx, cellIndex, cell});
+                rowAsFn += `${cell}, `;
             } catch (e) {
                 console.log(e);
             }
         });
-        secondAsFn += ']';
-        secondAsFn = secondAsFn.replace(', ]', ']');
-        fns.push(secondAsFn);
+        rowAsFn += ']';
+        rowAsFn = rowAsFn.replace(', ]', ']');
+        fns.push(rowAsFn);
     });
     console.log(fns)
     return fns;
@@ -44,26 +44,34 @@ export const getFnsFromGrid = (grid: Grid) => {
 export const playSong = (song: Grid, parser: Parser, preambles: string[]) => {
     parser.clear();
     parser.evaluate(preambles.join('\n'));
-    const fns = getFnsFromGrid(song);
+    const rowsAsFns = getRowsAsFns(song);
     const SAMPLE_RATE = 44100;
     const MS_PER_SECOND = 1000;
     const yValues = [];
+    let ms = 0;
     let log = ''
-    for (let row = 0; row < song.length; row++) {
-        parser.evaluate(fns[row]);
-        const rowMs = parser.get('rowMs');
-        const rowSamples = rowMs * SAMPLE_RATE / MS_PER_SECOND;
-        log += `${rowMs}ms, ${rowSamples} samples\n`
+    for (let rowIdx = 0; rowIdx < song.length; rowIdx++) {
+        const row = song[rowIdx];
+        parser.evaluate(rowsAsFns[rowIdx]);
+        const rowSamples = row.msDuration * SAMPLE_RATE / MS_PER_SECOND;
+        const msPerSample = row.msDuration / rowSamples;
+        log += `row #${rowIdx}, ${row.msDuration}ms, ${rowSamples} samples, ${msPerSample}ms/sample\n`
         for (let sample = 0; sample < rowSamples; sample++) {
-            const x = row + sample / rowSamples;
-            for (let fn = 0; fn <= row; fn++) {
-                parser.evaluate(`unlikelyFunctionNameForStepping${fn}(${x})`);
+            ms += msPerSample;
+            for (let fn = 0; fn <= rowIdx; fn++) {
+                parser.evaluate(`mathjsFnForRowNumber${fn}(${ms})`);
             }
             const y = parser.get('y');
             yValues.push(y);
         }
     }
-    console.log(log);
+    // download log as a text file
+    const logBlob = new Blob([log], { type: 'text/plain' });
+    const logUrl = window.URL.createObjectURL(logBlob);
+    const logAnchor = document.createElement('a');
+    logAnchor.href = logUrl;
+    logAnchor.download = 'log.txt';
+    logAnchor.click();
 
     const audioContext = new window.AudioContext();
     const audioBuffer = audioContext.createBuffer(1, yValues.length, SAMPLE_RATE);

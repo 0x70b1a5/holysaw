@@ -8,16 +8,24 @@ import ExpandoBox from './components/ExpandoBox';
 
 // Main App component
 function App() {
-  const { grid, setGrid, timeIndex, setTimeIndex, focusedRow, setFocusedRow, } = useHsStore()
+  const { grid, setGrid, timeIndex, setTimeIndex, focusedRow, setFocusedRow, defaultRowMs } = useHsStore()
 
   const addCellToRows = () => {
-    const newGrid = grid.map(row => [...row, '']);
+    const newGrid = grid.map((row) => ({ ...row, cells: [...row.cells, '']}));
     setGrid(newGrid);
   };
 
   const addRow = () => {
-    const newGrid = [...grid, grid[0].map(() => '')];
+    const newGrid = [...grid, { msDuration: defaultRowMs, cells: [] }];
     setGrid(newGrid);
+  }
+
+  const msToClockTime = (upToRowIndex: number) => {
+    const msAfter = grid.slice(0, upToRowIndex + 1).reduce((acc, row) => acc + row.msDuration, 0);
+    const minutesAfter = Math.floor(msAfter / 60000);
+    const secondsAfter = Math.floor((msAfter % 60000) / 1000);
+    const millisecondsAfter = Math.floor(msAfter % 1000);
+    return `${minutesAfter}:${secondsAfter.toString().padStart(2, '0')}.${millisecondsAfter.toString().padStart(3, '0')}`;
   }
 
   return (
@@ -28,9 +36,22 @@ function App() {
           {grid.map((row, rindex) => (
             <div key={rindex} className="flex grow border border-b-1 border-t-0 border-x-0 border-solid">
               <ExpandoBox>
-                {String(rindex).padStart(3, '0')}
+                <span>{String(rindex)}</span>
+                <span className='text-gray-400'>{msToClockTime(rindex - 1)}</span>
+                <span className='text-gray-400'>{msToClockTime(rindex)}</span>
               </ExpandoBox>
-              {row.map((cell, cindex) => (
+              <TextCell
+                text={row.msDuration.toString()}
+                onChange={(text) => {
+                  const newGrid = [...grid];
+                  newGrid[rindex] = { ...newGrid[rindex], msDuration: parseInt(text) };
+                  setGrid(newGrid);
+                }}
+                onFocus={() => { setTimeIndex(-1); setFocusedRow(rindex) }}
+                placeholder='ms'
+                className='grow-0'
+              />
+              {row.cells.map((cell, cindex) => (
                 <TextCell
                   key={cindex}
                   active={cindex === timeIndex || rindex === focusedRow}
@@ -38,8 +59,8 @@ function App() {
                   placeholder={`x=${rindex}`}
                   onChange={(text) => {
                     const newGrid = [...grid];
-                    newGrid[rindex] = [...newGrid[rindex]]; // Create a copy of the row
-                    newGrid[rindex][cindex] = text;
+                    newGrid[rindex].cells = [...newGrid[rindex].cells]; // Create a copy of the row
+                    newGrid[rindex].cells[cindex] = text;
                     console.log({ rindex, cindex, text, grid })
                     setGrid(newGrid);
                   }}

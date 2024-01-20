@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Grid } from '../types/grid';
+import { Grid, GridRow } from '../types/grid';
 import { Parser, parser } from 'mathjs';
 
 export interface HsStore {
@@ -16,6 +16,8 @@ export interface HsStore {
     setPreamble: (preamble: string) => void
     output: string
     setOutput: (output: string) => void
+    defaultRowMs: number
+    setDefaultRowMs: (defaultRowMs: number) => void
 }
 
 export const useHsStore = create<HsStore>()(
@@ -23,16 +25,18 @@ export const useHsStore = create<HsStore>()(
         get,
         set,
         output: '',
+        defaultRowMs: 1000,
+        setDefaultRowMs: (defaultRowMs: number) => set({ defaultRowMs }),
         setOutput: (output: string) => set({ output }),
         grid: [
-            ['', '', 'y=sin(440*2*pi*x)'],
-            ['', '', ''],
-            ['', '', ''],
-            ['', '', ''], 
-            ['', '', ''],
-            ['', '', ''],
-            ['', '', ''],
-            ['', '', ''], 
+            { msDuration: 1000, cells: ['y=sin(440*2*pi*x)', '', ''] },
+            { msDuration: 1000, cells: ['', '', ''] },
+            { msDuration: 1000, cells: ['', '', ''] },
+            { msDuration: 1000, cells: ['', '', ''] },
+            { msDuration: 1000, cells: ['', '', ''] },
+            { msDuration: 1000, cells: ['', '', ''] },
+            { msDuration: 1000, cells: ['', '', ''] },
+            { msDuration: 1000, cells: ['', '', ''] },
         ],
         setGrid: (newGrid: Grid) => set({ grid: newGrid }),
         timeIndex: 0,
