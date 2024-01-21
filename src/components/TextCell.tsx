@@ -15,7 +15,7 @@ const TextCell: React.FC<TextCellProps> = ({ text, onChange, readonly, active, o
       value={text}
       onChange={(e) => onChange(e.target.value)}
       onFocus={onFocus}
-      className={classNames("font-mono grow p-2 m-0 w-16", { 'bg-gray-200': readonly, 'bg-gray-100': active }, className)}
+      className={classNames("grow w-16", { 'bg-gray-200': readonly, 'bg-gray-100': active }, className)}
       readOnly={readonly}
       placeholder={placeholder}
     ></textarea>

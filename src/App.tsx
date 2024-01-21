@@ -16,7 +16,7 @@ function App() {
   };
 
   const addRow = () => {
-    const newGrid = [...grid, { msDuration: defaultRowMs, cells: [] }];
+    const newGrid = [...grid, { msDuration: defaultRowMs, cells: Array(grid[0].cells.length).fill('') }];
     setGrid(newGrid);
   }
 
@@ -31,14 +31,28 @@ function App() {
   return (
     <div className="flex-col w-screen" id='main'>
       <TopBar />
-      <div className='flex grow self-stretch'>
-        <div className='flex flex-col grow self-stretch overflow-y-auto' id='container'>
+      <div className='flex'>
+        <div className='flex flex-col grow' id='container'>
           {grid.map((row, rindex) => (
-            <div key={rindex} className="flex grow border border-b-1 border-t-0 border-x-0 border-solid">
-              <ExpandoBox>
-                <span>{String(rindex)}</span>
-                <span className='text-gray-400'>{msToClockTime(rindex - 1)}</span>
-                <span className='text-gray-400'>{msToClockTime(rindex)}</span>
+            <div key={rindex} className="flex grow">
+              <ExpandoBox className='text-xs'>
+                <div className='flex'>
+                  <button 
+                    onClick={() => {
+                      if (window.confirm('Are you sure you want to delete this row?')) {
+                        const newGrid = [...grid];
+                        newGrid.splice(rindex, 1);
+                        setGrid(newGrid);
+                      }
+                    }}
+                    className='text-[8px] px-1 mr-1 ml-[-4px] m-0 bg-transparent hover:bg-red-200 place-self-center'
+                  >-</button>
+                  <div className='flex flex-col place-items-center'>
+                    <span>x={String(rindex * 44100)}</span>
+                    <span className='text-gray-400'>{msToClockTime(rindex - 1)}</span>
+                    <span className='text-gray-400'>{msToClockTime(rindex)}</span>
+                  </div>
+                </div>
               </ExpandoBox>
               <TextCell
                 text={row.msDuration.toString()}
@@ -71,12 +85,12 @@ function App() {
           ))}
           <button 
             onClick={addRow} 
-            className='p-2 m-0 hover:bg-blue-200 bg-blue-100'
+            className='self-center'
           >+</button>
         </div> {/* container */}
         <button 
           onClick={addCellToRows} 
-          className='p-2 m-0 hover:bg-blue-200 bg-blue-100'
+          className='self-center'
         >+</button>
       </div>
     </div> // main

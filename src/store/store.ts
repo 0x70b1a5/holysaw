@@ -18,18 +18,22 @@ export interface HsStore {
     setOutput: (output: string) => void
     defaultRowMs: number
     setDefaultRowMs: (defaultRowMs: number) => void
+    songName: string
+    setSongName: (songName: string) => void
 }
 
 export const useHsStore = create<HsStore>()(
     (set, get) => ({
         get,
         set,
+        songName: 'my-song',
+        setSongName: (songName: string) => set({ songName }),
         output: '',
         defaultRowMs: 1000,
         setDefaultRowMs: (defaultRowMs: number) => set({ defaultRowMs }),
         setOutput: (output: string) => set({ output }),
         grid: [
-            { msDuration: 1000, cells: ['y=sin(440*2*pi*x)', '', ''] },
+            { msDuration: 1000, cells: ['y() = sin(tone*2*pi*x/sampleRate)', '', ''] },
             { msDuration: 1000, cells: ['', '', ''] },
             { msDuration: 1000, cells: ['', '', ''] },
             { msDuration: 1000, cells: ['', '', ''] },
@@ -44,7 +48,7 @@ export const useHsStore = create<HsStore>()(
         setFocusedRow: (focusedRow: number) => set({ focusedRow }),
         setTimeIndex: (timeIndex: number) => set({ timeIndex }),
         parser: parser(),
-        preamble: `rowMs = 1000\ntone = 440`,
+        preamble: `tone = 440\nsampleRate = 44100\n`,
         setPreamble: (preamble: string) => set({ preamble })
     })
 );
