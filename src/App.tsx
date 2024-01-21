@@ -28,6 +28,10 @@ function App() {
     return `${minutesAfter}:${secondsAfter.toString().padStart(2, '0')}.${millisecondsAfter.toString().padStart(3, '0')}`;
   }
 
+  const msToSample = (upToRowIndex: number) => {
+    return Math.round(grid.slice(0, upToRowIndex + 1).reduce((acc, row) => acc + row.msDuration, 0) * 44100 / 1000);
+  }
+
   return (
     <div className="flex-col w-screen" id='main'>
       <TopBar />
@@ -48,7 +52,7 @@ function App() {
                     className='text-[8px] px-1 mr-1 ml-[-4px] m-0 bg-transparent hover:bg-red-200 place-self-center'
                   >-</button>
                   <div className='flex flex-col place-items-center'>
-                    <span>x={String(rindex * 44100)}</span>
+                    <span>x={msToSample(rindex)}</span>
                     <span className='text-gray-400'>{msToClockTime(rindex - 1)}</span>
                     <span className='text-gray-400'>{msToClockTime(rindex)}</span>
                   </div>
