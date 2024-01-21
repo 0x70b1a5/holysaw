@@ -1,5 +1,5 @@
 /*
-! tailwindcss v3.4.0 | MIT License | https://tailwindcss.com
+! tailwindcss v3.4.1 | MIT License | https://tailwindcss.com
 */
 
 /*
@@ -573,6 +573,10 @@ video {
   margin: 0px;
 }
 
+.m-0\.5 {
+  margin: 0.125rem;
+}
+
 .ml-\[-4px\] {
   margin-left: -4px;
 }
@@ -613,6 +617,10 @@ video {
   flex-grow: 0;
 }
 
+.transform {
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
+
 .flex-col {
   flex-direction: column;
 }
@@ -637,6 +645,10 @@ video {
   align-self: stretch;
 }
 
+.rounded {
+  border-radius: 0.25rem;
+}
+
 .bg-gray-100 {
   --tw-bg-opacity: 1;
   background-color: rgb(243 244 246 / var(--tw-bg-opacity));
@@ -649,6 +661,11 @@ video {
 
 .bg-transparent {
   background-color: transparent;
+}
+
+.bg-blue-100 {
+  --tw-bg-opacity: 1;
+  background-color: rgb(219 234 254 / var(--tw-bg-opacity));
 }
 
 .p-1 {
@@ -716,6 +733,8 @@ input, textarea {
   border-radius: 0.25rem;
   padding: 0.5rem;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
 }
 
 input {

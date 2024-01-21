@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 input, textarea { 
-    @apply font-mono p-2 rounded m-0.5
+    @apply font-mono p-2 rounded m-0.5 text-sm
 }
 
 input { 

@@ -14,8 +14,8 @@ export interface HsStore {
     parser: Parser
     preamble: string
     setPreamble: (preamble: string) => void
-    output: string
-    setOutput: (output: string) => void
+    output: number[]
+    setOutput: (output: number[]) => void
     defaultRowMs: number
     setDefaultRowMs: (defaultRowMs: number) => void
     songName: string
@@ -28,10 +28,10 @@ export const useHsStore = create<HsStore>()(
         set,
         songName: 'my-song',
         setSongName: (songName: string) => set({ songName }),
-        output: '',
+        output: [],
         defaultRowMs: 1000,
         setDefaultRowMs: (defaultRowMs: number) => set({ defaultRowMs }),
-        setOutput: (output: string) => set({ output }),
+        setOutput: (output: number[]) => set({ output }),
         grid: [
             { msDuration: 1000, cells: ['y() = sin(tone*2*pi*x/sampleRate)', '', ''] },
             { msDuration: 1000, cells: ['', '', ''] },

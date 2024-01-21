@@ -66,12 +66,12 @@ export const playSong = (song: Grid, parser: Parser, preambles: string[]) => {
         }
     }
     // download log as a text file
-    const logBlob = new Blob([log], { type: 'text/plain' });
-    const logUrl = window.URL.createObjectURL(logBlob);
-    const logAnchor = document.createElement('a');
-    logAnchor.href = logUrl;
-    logAnchor.download = 'log.txt';
-    logAnchor.click();
+    // const logBlob = new Blob([log], { type: 'text/plain' });
+    // const logUrl = window.URL.createObjectURL(logBlob);
+    // const logAnchor = document.createElement('a');
+    // logAnchor.href = logUrl;
+    // logAnchor.download = 'log.txt';
+    // logAnchor.click();
 
     const audioContext = new window.AudioContext();
     const audioBuffer = audioContext.createBuffer(1, yValues.length, SAMPLE_RATE);
@@ -92,4 +92,6 @@ export const playSong = (song: Grid, parser: Parser, preambles: string[]) => {
     const audio = new Audio(url);
     window.document.body.appendChild(audio);
     audio.play();
+
+    return yValues
 }
