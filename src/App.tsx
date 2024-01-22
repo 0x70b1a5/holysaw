@@ -8,15 +8,20 @@ import ExpandoBox from './components/ExpandoBox';
 
 // Main App component
 function App() {
-  const { grid, setGrid, timeIndex, setTimeIndex, focusedRow, setFocusedRow, defaultRowMs } = useHsStore()
+  const { grid, setGrid, timeIndex, setTimeIndex, focusedRow, setFocusedRow, defaultRowMs, setDefaultRowMs, parser, preamble } = useHsStore()
 
   const addCellToRows = () => {
     const newGrid = grid.map((row) => ({ ...row, cells: [...row.cells, '']}));
     setGrid(newGrid);
   };
 
-  const addRow = () => {
-    const newGrid = [...grid, { msDuration: defaultRowMs, cells: Array(grid[0].cells.length).fill('') }];
+  const addRow = (e: any, rows?: number) => {
+    // const newGrid = [...grid, { msDuration: defaultRowMs, cells: Array(grid[0].cells.length).fill('') }];
+
+    const newGrid = [...grid];
+    for (let i = 0; i < (rows ?? 1); i++) {
+      newGrid.push({ msDuration: defaultRowMs, cells: Array(grid[0].cells.length).fill('') });
+    }
     setGrid(newGrid);
   }
 
@@ -40,22 +45,10 @@ function App() {
           {grid.map((row, rindex) => (
             <div key={rindex} className="flex grow">
               <ExpandoBox className='text-xs'>
-                <div className='flex'>
-                  <button 
-                    onClick={() => {
-                      if (window.confirm('Are you sure you want to delete this row?')) {
-                        const newGrid = [...grid];
-                        newGrid.splice(rindex, 1);
-                        setGrid(newGrid);
-                      }
-                    }}
-                    className='text-[8px] px-1 mr-1 ml-[-4px] m-0 bg-transparent hover:bg-red-200 place-self-center'
-                  >-</button>
-                  <div className='flex flex-col place-items-center'>
-                    <span>x={msToSample(rindex)}</span>
-                    <span className='text-gray-400'>{msToClockTime(rindex - 1)}</span>
-                    <span className='text-gray-400'>{msToClockTime(rindex)}</span>
-                  </div>
+                <div className='flex flex-col place-items-center'>
+                  <span>x={msToSample(rindex)}</span>
+                  <span className='text-gray-400'>{msToClockTime(rindex - 1)}</span>
+                  <span className='text-gray-400'>{msToClockTime(rindex)}</span>
                 </div>
               </ExpandoBox>
               <TextCell
@@ -85,17 +78,63 @@ function App() {
                   onFocus={() => { setTimeIndex(cindex); setFocusedRow(rindex) }}
                 />
               ))}
+              <div className='flex flex-col self-stretch'>
+                <div className='flex grow'>
+                  <button 
+                    onClick={() => {
+                      if (window.confirm('Are you sure you want to delete this row?')) {
+                        const newGrid = [...grid];
+                        newGrid.splice(rindex, 1);
+                        setGrid(newGrid);
+                      }
+                    }}
+                    className='grow text-xs px-1 py-0.5 self-stretch bg-red-100 hover:bg-red-200'
+                  >❌</button>
+                  <button 
+                    onClick={() => {
+                      const gridUpToThisRow = grid.slice(0, rindex + 1);
+                      playSong(gridUpToThisRow, parser, [preamble]);
+                    }}
+                    className='grow text-xs px-1 py-0.5 self-stretch'
+                  >⏩</button>
+                </div>
+                <div className='flex grow'>
+                  <button 
+                    onClick={() => {
+                      const gridOfOnlyThisRow = [{ ...grid[rindex] }];
+                      playSong(gridOfOnlyThisRow, parser, [preamble]);
+                    }}
+                    className='grow text-xs px-1 py-0.5 self-stretch'
+                  >▶️</button>
+                  <button 
+                    onClick={addCellToRows} 
+                    className='grow text-xs px-1 py-0.5 self-stretch bg-yellow-100 hover:bg-yellow-200'
+                  >+</button>
+                </div>
+              </div>
             </div>
           ))}
-          <button 
-            onClick={addRow} 
-            className='self-center'
-          >+</button>
+          <div className='flex place-items-center place-content-center text-xs'>
+            <input type="number" value={defaultRowMs} onChange={(e) => {
+              const val = e.currentTarget.value
+              if (val && parseInt(val) > 0) {
+                setDefaultRowMs(parseInt(val))
+              }
+            }} className="text-xs w-16 px-1 py-0.5" /><span className='mr-4'>ms</span>
+            <button 
+              onClick={addRow} 
+              className='self-center'
+            >+1</button>
+            <button 
+              onClick={(e) => addRow(e, 10)} 
+              className='self-center'
+            >+10</button>
+            <button 
+              onClick={(e) => addRow(e, 100)} 
+              className='self-center'
+            >+100</button>
+          </div>
         </div> {/* container */}
-        <button 
-          onClick={addCellToRows} 
-          className='self-center'
-        >+</button>
       </div>
     </div> // main
   );

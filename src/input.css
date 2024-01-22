@@ -17,3 +17,7 @@ textarea {
 button {
     @apply m-0.5 px-2 py-1 bg-green-100 hover:bg-green-200 rounded
 }
+
+a.button {
+    @apply m-0.5 px-2 py-1 bg-green-100 hover:bg-green-200 rounded no-underline text-inherit text-center
+}

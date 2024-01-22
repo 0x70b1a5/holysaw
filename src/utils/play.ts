@@ -93,5 +93,5 @@ export const playSong = (song: Grid, parser: Parser, preambles: string[]) => {
     window.document.body.appendChild(audio);
     audio.play();
 
-    return yValues
+    return { yValues, songUrl: url }
 }

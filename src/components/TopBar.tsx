@@ -2,44 +2,16 @@ import React, { useEffect, useMemo } from "react";
 import { useHsStore } from "../store/store";
 import { playSong } from "../utils/play";
 import { Scatter } from "react-chartjs-2";
+import { onSave, onLoad } from '../utils/file';
 import 'chart.js/auto'
 
 const TopBar: React.FC = () => {
-  const { grid, parser, preamble, setPreamble, output, setOutput, songName, setSongName, setGrid } = useHsStore()
+  const { grid, parser, preamble, setPreamble, output, setOutput, songName, setSongName, setGrid, setSongUrl, songUrl } = useHsStore()
 
   const onPlay = () => {
-    const yVals = playSong(grid, parser, [preamble]);
-    setOutput(yVals);
-  }
-
-  const onSave = () => {
-    const data = JSON.stringify({ preamble, grid, songName });
-    const blob = new Blob([data], { type: 'text/plain' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = songName+'.ihs';
-    a.click();
-  }
-
-  const onLoad = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target?.result as string;
-      let data: any;
-      try {
-        data = JSON.parse(text);
-      } catch (e) {
-        alert('Error parsing file');
-        return;
-      }
-      setPreamble(data.preamble);
-      setSongName(data.songName);
-      setGrid(data.grid);
-    }
-    reader.readAsText(file);
+    const { yValues, songUrl } = playSong(grid, parser, [preamble]);
+    setOutput(yValues);
+    setSongUrl(songUrl);
   }
 
   const chartOptions = {
@@ -74,14 +46,17 @@ const TopBar: React.FC = () => {
       <div className="flex flex-col">
         <div className="flex place-items-center">
           <label className="font-mono text-xs p-1 m-0">Name: </label>
-          <input type='text' value={songName} onChange={(e) => setSongName(e.target.value)} className="text-xs" />
+          <input type='text' value={songName} onChange={(e) => setSongName(e.target.value)} className="grow text-xs" />
         </div>
         <div className="flex place-items-center grow">
-          <button className="grow self-stretch text-2xl w-20" onClick={onSave}>💾</button>
-          <button className="grow self-stretch text-2xl w-20">
-            <label htmlFor="file">📂</label>
-            <input type="file" id="file" onChange={onLoad} className="hidden" />
+          <button className="grow self-stretch w-20" onClick={onSave(preamble, grid, songName, document)}>💾 Save .ihs</button>
+          <button className="grow self-stretch w-20">
+            <label htmlFor="file">📂 Load .ihs</label>
+            <input type="file" id="file" onChange={onLoad(setPreamble, setSongName, setGrid)} className="hidden" />
           </button>
+        </div>
+        <div className="flex place-items-center grow">
+          <a className="grow self-stretch w-20 button" href={songUrl} download={`${songName}.wav`}>📥 Save .wav</a>
         </div>
       </div>
       <button 

@@ -20,12 +20,16 @@ export interface HsStore {
     setDefaultRowMs: (defaultRowMs: number) => void
     songName: string
     setSongName: (songName: string) => void
+    songUrl: string
+    setSongUrl: (songUrl: string) => void
 }
 
 export const useHsStore = create<HsStore>()(
     (set, get) => ({
         get,
         set,
+        songUrl: '',
+        setSongUrl: (songUrl: string) => set({ songUrl }),
         songName: 'my-song',
         setSongName: (songName: string) => set({ songName }),
         output: [],
