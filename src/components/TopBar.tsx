@@ -43,20 +43,20 @@ const TopBar: React.FC = () => {
         value={preamble} 
         onChange={(e) => setPreamble(e.target.value)} 
         className="grow self-stretch"></textarea>
-      <div className="flex flex-col">
-        <div className="flex place-items-center">
+      <div className="flex flex-col self-stretch">
+        <div className="flex place-items-center grow self-stretch">
           <label className="font-mono text-xs p-1 m-0">Name: </label>
           <input type='text' value={songName} onChange={(e) => setSongName(e.target.value)} className="grow text-xs" />
         </div>
-        <div className="flex place-items-center grow">
+        <div className="flex place-items-center grow self-stretch">
           <button className="grow self-stretch w-20" onClick={onSave(preamble, grid, songName, document)}>💾 Save .ihs</button>
           <button className="grow self-stretch w-20">
             <label htmlFor="file">📂 Load .ihs</label>
             <input type="file" id="file" onChange={onLoad(setPreamble, setSongName, setGrid)} className="hidden" />
           </button>
         </div>
-        <div className="flex place-items-center grow">
-          <a className="grow self-stretch w-20 button" href={songUrl} download={`${songName}.wav`}>📥 Save .wav</a>
+        <div className="flex place-items-center grow self-stretch">
+          <a className="grow self-stretch w-20 button place-content-center place-items-center flex" href={songUrl} download={`${songName}.wav`}>📥 Save .wav</a>
         </div>
       </div>
       <button 

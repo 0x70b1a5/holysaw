@@ -67,7 +67,7 @@ function App() {
                   key={cindex}
                   active={cindex === timeIndex || rindex === focusedRow}
                   text={cell}
-                  placeholder={`x=${rindex}`}
+                  placeholder={`x=${msToSample(rindex)}`}
                   onChange={(text) => {
                     const newGrid = [...grid];
                     newGrid[rindex].cells = [...newGrid[rindex].cells]; // Create a copy of the row
