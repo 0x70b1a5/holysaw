@@ -38,7 +38,7 @@ function App() {
   }
 
   return (
-    <div className="flex-col w-screen" id='main'>
+    <div className="flex-col w-screen h-screen" id='main'>
       <TopBar />
       <div className='flex'>
         <div className='flex flex-col grow' id='container'>
@@ -81,6 +81,10 @@ function App() {
               <div className='flex flex-col self-stretch'>
                 <div className='flex grow'>
                   <button 
+                    onClick={addCellToRows} 
+                    className='grow text-xs px-1 py-0.5 self-stretch bg-gray-100 hover:bg-gray-200'
+                  >+</button>
+                  <button 
                     onClick={() => {
                       if (window.confirm('Are you sure you want to delete this row?')) {
                         const newGrid = [...grid];
@@ -89,27 +93,16 @@ function App() {
                       }
                     }}
                     className='grow text-xs px-1 py-0.5 self-stretch bg-red-100 hover:bg-red-200'
-                  >❌</button>
-                  <button 
-                    onClick={() => {
-                      const gridUpToThisRow = grid.slice(0, rindex + 1);
-                      playSong(gridUpToThisRow, parser, [preamble]);
-                    }}
-                    className='grow text-xs px-1 py-0.5 self-stretch'
-                  >⏩</button>
+                  >&times;</button>
                 </div>
                 <div className='flex grow'>
                   <button 
                     onClick={() => {
-                      const gridOfOnlyThisRow = [{ ...grid[rindex] }];
-                      playSong(gridOfOnlyThisRow, parser, [preamble]);
+                      const gridUpToThisRow = grid.slice(0, rindex + 1);
+                      playSong({ song: gridUpToThisRow, name: 'Untitled', parser, preambles: [preamble], playAudio: true, saveAsWav: false })
                     }}
                     className='grow text-xs px-1 py-0.5 self-stretch'
                   >▶️</button>
-                  <button 
-                    onClick={addCellToRows} 
-                    className='grow text-xs px-1 py-0.5 self-stretch bg-yellow-100 hover:bg-yellow-200'
-                  >+</button>
                 </div>
               </div>
             </div>

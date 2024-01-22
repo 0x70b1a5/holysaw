@@ -41,7 +41,15 @@ export const getRowsAsFns = (grid: Grid) => {
     return fns;
 }
 
-export const playSong = (song: Grid, parser: Parser, preambles: string[]) => {
+interface PlayOptions {
+    song: Grid, 
+    name: string,
+    parser: Parser, 
+    preambles: string[], 
+    playAudio: boolean
+    saveAsWav: boolean
+}
+export const playSong = ({ song, name, parser, preambles, playAudio, saveAsWav }: PlayOptions) => {
     parser.clear();
     parser.evaluate(preambles.join('\n'));
     const rowsAsFns = getRowsAsFns(song);
@@ -66,18 +74,34 @@ export const playSong = (song: Grid, parser: Parser, preambles: string[]) => {
         }
     }
     // download log as a text file
-    // const logBlob = new Blob([log], { type: 'text/plain' });
-    // const logUrl = window.URL.createObjectURL(logBlob);
-    // const logAnchor = document.createElement('a');
-    // logAnchor.href = logUrl;
-    // logAnchor.download = 'log.txt';
-    // logAnchor.click();
+    const logBlob = new Blob([log], { type: 'text/plain' });
+    const logUrl = window.URL.createObjectURL(logBlob);
 
     const audioContext = new window.AudioContext();
     const audioBuffer = audioContext.createBuffer(1, yValues.length, SAMPLE_RATE);
-    for (let sample = 0; sample < yValues.length; sample++) {
-        audioBuffer.getChannelData(0)[sample] = yValues[sample];
+    audioBuffer.copyToChannel(new Float32Array(yValues), 0);
+
+    let url = ''
+
+    if (saveAsWav) {
+        url = bufferAsWave(audioBuffer);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = name+'.wav';
+        a.click();
     }
+
+    if (playAudio) {
+        const source = audioContext.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(audioContext.destination);
+        source.start();
+    }
+
+    return { yValues, songUrl: url, logUrl }
+}
+
+export const bufferAsWave = (audioBuffer: AudioBuffer) => {
 
     // Convert the AudioBuffer to a .wav file
     const wav = toWav(audioBuffer);
@@ -88,10 +112,5 @@ export const playSong = (song: Grid, parser: Parser, preambles: string[]) => {
     // Create a URL from the Blob
     const url = window.URL.createObjectURL(blob);
 
-    // Create and play an <audio> element with the URL as its source
-    const audio = new Audio(url);
-    window.document.body.appendChild(audio);
-    audio.play();
-
-    return { yValues, songUrl: url }
+    return url;
 }

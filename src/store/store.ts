@@ -22,6 +22,8 @@ export interface HsStore {
     setSongName: (songName: string) => void
     songUrl: string
     setSongUrl: (songUrl: string) => void
+    logUrl: string
+    setLogUrl: (logUrl: string) => void
 }
 
 export const useHsStore = create<HsStore>()(
@@ -30,6 +32,8 @@ export const useHsStore = create<HsStore>()(
         set,
         songUrl: '',
         setSongUrl: (songUrl: string) => set({ songUrl }),
+        logUrl: '',
+        setLogUrl: (logUrl: string) => set({ logUrl }),
         songName: 'my-song',
         setSongName: (songName: string) => set({ songName }),
         output: [],
@@ -37,7 +41,7 @@ export const useHsStore = create<HsStore>()(
         setDefaultRowMs: (defaultRowMs: number) => set({ defaultRowMs }),
         setOutput: (output: number[]) => set({ output }),
         grid: [
-            { msDuration: 10, cells: ['y() = sin(tone*2*pi*x/sampleRate)', '', ''] },
+            { msDuration: 10, cells: ['y() = sin(tone*tau*x/sampleRate)', '', ''] },
             { msDuration: 10, cells: ['', '', ''] },
             { msDuration: 10, cells: ['', '', ''] },
             { msDuration: 10, cells: ['', '', ''] },
