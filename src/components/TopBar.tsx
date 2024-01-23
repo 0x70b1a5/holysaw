@@ -40,7 +40,7 @@ const TopBar: React.FC = () => {
     ]
   }), [output]);
 
-  return <div className="flex flex-col grow self-stretch place-items-center place-content-center">
+  return <div className="flex flex-col self-stretch place-items-center place-content-center">
     <div className="flex grow self-stretch place-items-center place-content-center">
       <h1 className="px-4 italic self-stretch place-items-center place-content-center flex flex-col" ><span className="leading-none text-2xl text-gray-500">IAOTECHSOFT</span><span className="leading-none font-bold text-3xl">HOLYSAW&trade;</span></h1>
       <textarea 

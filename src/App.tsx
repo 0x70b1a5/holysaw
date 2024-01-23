@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 
 import { useHsStore } from './store/store';
 import { playSong } from './utils/play';
@@ -8,6 +8,8 @@ import ExpandoBox from './components/ExpandoBox';
 
 // Main App component
 function App() {
+  const scrollerRef = useRef<HTMLDivElement>(null);
+
   const { grid, setGrid, timeIndex, setTimeIndex, focusedRow, setFocusedRow, defaultRowMs, setDefaultRowMs, parser, preamble } = useHsStore()
 
   const addCellToRows = () => {
@@ -23,6 +25,9 @@ function App() {
       newGrid.push({ msDuration: defaultRowMs, cells: Array(grid[0].cells.length).fill('') });
     }
     setGrid(newGrid);
+    setTimeout(() => {
+      scrollerRef.current?.scrollTo({ top: scrollerRef.current?.scrollHeight });
+    }, 0);
   }
 
   const msToClockTime = (upToRowIndex: number) => {
@@ -38,10 +43,10 @@ function App() {
   }
 
   return (
-    <div className="flex-col w-screen h-screen" id='main'>
+    <div className="w-screen h-screen max-h-screen flex flex-col" id='main'>
       <TopBar />
-      <div className='flex'>
-        <div className='flex flex-col grow' id='container'>
+      <div className='flex flex-col overflow-hidden' id='container'>
+        <div className='flex flex-col overflow-y-auto h-full' ref={scrollerRef}>
           {grid.map((row, rindex) => (
             <div key={rindex} className="flex grow">
               <ExpandoBox className='text-xs'>
@@ -107,28 +112,28 @@ function App() {
               </div>
             </div>
           ))}
-          <div className='flex place-items-center place-content-center text-xs'>
-            <input type="number" value={defaultRowMs} onChange={(e) => {
-              const val = e.currentTarget.value
-              if (val && parseInt(val) > 0) {
-                setDefaultRowMs(parseInt(val))
-              }
-            }} className="text-xs w-16 px-1 py-0.5" /><span className='mr-4'>ms</span>
-            <button 
-              onClick={addRow} 
-              className='self-center'
-            >+1</button>
-            <button 
-              onClick={(e) => addRow(e, 10)} 
-              className='self-center'
-            >+10</button>
-            <button 
-              onClick={(e) => addRow(e, 100)} 
-              className='self-center'
-            >+100</button>
-          </div>
-        </div> {/* container */}
-      </div>
+        </div>
+        <div className='flex place-items-center place-content-center text-xs'>
+          <input type="number" value={defaultRowMs} onChange={(e) => {
+            const val = e.currentTarget.value
+            if (val && parseInt(val) > 0) {
+              setDefaultRowMs(parseInt(val))
+            }
+          }} className="text-xs w-16 px-1 py-0.5" /><span className='mr-4'>ms</span>
+          <button 
+            onClick={addRow} 
+            className='self-center'
+          >+1</button>
+          <button 
+            onClick={(e) => addRow(e, 10)} 
+            className='self-center'
+          >+10</button>
+          <button 
+            onClick={(e) => addRow(e, 100)} 
+            className='self-center'
+          >+100</button>
+        </div>
+      </div> {/* container */}
     </div> // main
   );
 }
