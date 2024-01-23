@@ -35,7 +35,7 @@ const TopBar: React.FC = () => {
         value={preamble} 
         onChange={(e) => setPreamble(e.target.value)} 
         className="grow self-stretch"></textarea>
-      <div className="flex grow m-0.5">
+      <div className="flex grow m-0.5 bg-green-100 rounded self-stretch">
         <Waveform pref={pixiRef} />
       </div>
       <div className="flex flex-col self-stretch text-xs">
