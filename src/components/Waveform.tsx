@@ -29,8 +29,8 @@ const Waveform: React.FC<Props> = ({ pref }) => {
                 graphics.moveTo(0, 50);
                 for (let i = 0; i < bufferLength; i++) {
                     if (dataArray[i] == 128) continue;
-                    // canvas height: 100px
-                    const y = (dataArray[i] / 255) * 80;
+                    // canvas height: 94px
+                    const y = (dataArray[i] / 255) * 90;
                     // canvas width: determined by pixiAppRef.current
                     const x = (i / bufferLength) * (pref?.current?.clientWidth || 1);
                     graphics.lineTo(x, y);
@@ -40,7 +40,7 @@ const Waveform: React.FC<Props> = ({ pref }) => {
         }
     }, [output]);
 
-    return <div className="flex grow w-20 max-h-[128px] m-0 bg-gradient-to-br from-green-100 to-white" ref={pref}></div>;
+    return <div className="flex grow w-20 max-h-[92px] m-0" ref={pref}></div>;
 };
 
 export default Waveform
