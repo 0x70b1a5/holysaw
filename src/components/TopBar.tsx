@@ -1,52 +1,43 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { useHsStore } from "../store/store";
 import { playSong } from "../utils/play";
-import { Scatter } from "react-chartjs-2";
 import { onSave, onLoad } from '../utils/file';
-import 'chart.js/auto'
 import classNames from "classnames";
+import Waveform from "./Waveform";
 
 const TopBar: React.FC = () => {
-  const { grid, parser, preamble, setPreamble, output, setOutput, songName, setSongName, setGrid, setSongUrl, songUrl, logUrl, setLogUrl } = useHsStore()
+  const { grid, parser, preamble, setPreamble, output, setOutput, songName, setSongName, setGrid, setSongUrl, songUrl, logUrl, setLogUrl, audioContext, setAnalyserNode } = useHsStore()
+
+  const pixiRef = useRef<HTMLDivElement>(null);
 
   const onPlay = () => {
     const { yValues, songUrl, logUrl } = playSong({ 
-      song: grid, name: songName, parser, preambles: [preamble], playAudio: true, saveAsWav: false 
+      song: grid, 
+      name: songName, 
+      parser,
+      preamble, 
+      playAudio: true, 
+      saveAsWav: false,
+      audioContext, setAnalyserNode
     });
     setOutput(yValues);
     setSongUrl(songUrl);
     setLogUrl(logUrl);
   }
 
-  const chartOptions = {
-    // responsive: true,
-    plugins: {
-      tooltip: {
-        enabled: false
-      }
-    }
-  };
-
-  const chartData = useMemo(() => ({
-    labels: output?.map((_, i) => i),
-    datasets: [
-      {
-        label: 'Waveform',
-        data: output,
-        borderColor: 'rgba(0, 0, 0, 0.2)',
-        backgroundColor: 'rgba(0, 0, 0, 0.1)',
-        tension: 0.1,
-      }
-    ]
-  }), [output]);
-
   return <div className="flex flex-col self-stretch place-items-center place-content-center">
     <div className="flex grow self-stretch place-items-center place-content-center">
-      <h1 className="px-4 italic self-stretch place-items-center place-content-center flex flex-col" ><span className="leading-none text-2xl text-gray-500">IAOTECHSOFT</span><span className="leading-none font-bold text-3xl">HOLYSAW&trade;</span></h1>
+      <h1 className="px-4 italic self-stretch place-items-center place-content-center flex flex-col" >
+        <span className="leading-none text-2xl text-gray-500">IAOTECHSOFT</span>
+        <span className="leading-none font-bold text-3xl">HOLYSAW&trade;</span>
+      </h1>
       <textarea 
         value={preamble} 
         onChange={(e) => setPreamble(e.target.value)} 
         className="grow self-stretch"></textarea>
+      <div className="flex grow m-0.5">
+        <Waveform pref={pixiRef} />
+      </div>
       <div className="flex flex-col self-stretch text-xs">
         <div className="flex place-items-center grow self-stretch">
           <label className="font-mono p-1 m-0">Name: </label>
@@ -63,7 +54,16 @@ const TopBar: React.FC = () => {
         <div className="flex place-items-center grow self-stretch">
           <button
             className={classNames("grow self-stretch w-20")}
-            onClick={() => playSong({ song: grid, name: songName, parser, preambles: [preamble], playAudio: false, saveAsWav: true })}
+            onClick={() => playSong({ 
+              song: grid, 
+              name: songName,
+              parser, 
+              preamble,
+              playAudio: false, 
+              saveAsWav: true, 
+              audioContext, 
+              setAnalyserNode
+            })}
           >
             📻 Save .wav  
           </button>
@@ -83,9 +83,6 @@ const TopBar: React.FC = () => {
         ▶️
       </button>
     </div>
-    {false && output?.length > 0 && <div className="flex self-stretch rounded bg-blue-100 m-0.5">
-      <Scatter options={chartOptions} datasetIdKey="waveform" data={chartData} />
-    </div>}
   </div>;
 };
 

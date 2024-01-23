@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { Grid, GridRow } from '../types/grid';
 import { Parser, parser } from 'mathjs';
+import * as PIXI from 'pixi.js';
+import pixiApp from '../waveform/pixi';
 
 export interface HsStore {
     grid: Grid,
@@ -24,12 +26,24 @@ export interface HsStore {
     setSongUrl: (songUrl: string) => void
     logUrl: string
     setLogUrl: (logUrl: string) => void
+    pixiApp: PIXI.Application<HTMLCanvasElement>
+    setPixiApp: (pixiApp: PIXI.Application<HTMLCanvasElement>) => void
+    audioContext: AudioContext
+    setAudioContext: (audioContext: AudioContext) => void
+    analyserNode: AnalyserNode | null
+    setAnalyserNode: (analyserNode: AnalyserNode) => void
 }
 
 export const useHsStore = create<HsStore>()(
     (set, get) => ({
         get,
         set,
+        audioContext: new AudioContext(),
+        setAudioContext: (audioContext: AudioContext) => set({ audioContext }),
+        analyserNode: null,
+        setAnalyserNode: (analyserNode: AnalyserNode) => set({ analyserNode }),
+        pixiApp: pixiApp,
+        setPixiApp: (pixiApp: PIXI.Application<HTMLCanvasElement>) => set({ pixiApp }),
         songUrl: '',
         setSongUrl: (songUrl: string) => set({ songUrl }),
         logUrl: '',

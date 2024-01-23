@@ -45,13 +45,15 @@ interface PlayOptions {
     song: Grid, 
     name: string,
     parser: Parser, 
-    preambles: string[], 
+    preamble: string, 
     playAudio: boolean
     saveAsWav: boolean
+    audioContext: AudioContext
+    setAnalyserNode: (analyserNode: AnalyserNode) => void
 }
-export const playSong = ({ song, name, parser, preambles, playAudio, saveAsWav }: PlayOptions) => {
+export const playSong = ({ song, name, parser, preamble, playAudio, saveAsWav, audioContext, setAnalyserNode }: PlayOptions) => {
     parser.clear();
-    parser.evaluate(preambles.join('\n'));
+    parser.evaluate(preamble);
     const rowsAsFns = getRowsAsFns(song);
     const SAMPLE_RATE = 44100;
     const MS_PER_SECOND = 1000;
@@ -73,11 +75,7 @@ export const playSong = ({ song, name, parser, preambles, playAudio, saveAsWav }
             x++;
         }
     }
-    // download log as a text file
-    const logBlob = new Blob([log], { type: 'text/plain' });
-    const logUrl = window.URL.createObjectURL(logBlob);
 
-    const audioContext = new window.AudioContext();
     const audioBuffer = audioContext.createBuffer(1, yValues.length, SAMPLE_RATE);
     audioBuffer.copyToChannel(new Float32Array(yValues), 0);
 
@@ -94,9 +92,25 @@ export const playSong = ({ song, name, parser, preambles, playAudio, saveAsWav }
     if (playAudio) {
         const source = audioContext.createBufferSource();
         source.buffer = audioBuffer;
+        const analyserNode = audioContext.createAnalyser();
+        analyserNode.fftSize = 256;
+        setAnalyserNode(analyserNode);
+        
+        const bufferLength = analyserNode.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        analyserNode.getByteTimeDomainData(dataArray);
+
         source.connect(audioContext.destination);
+        source.connect(analyserNode);
+        source.onended = () => {
+            source.disconnect(audioContext.destination);
+            source.disconnect(analyserNode);
+        }
         source.start();
     }
+
+    const logBlob = new Blob([log], { type: 'text/plain' });
+    const logUrl = window.URL.createObjectURL(logBlob);
 
     return { yValues, songUrl: url, logUrl }
 }

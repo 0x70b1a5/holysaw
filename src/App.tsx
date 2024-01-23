@@ -10,7 +10,7 @@ import ExpandoBox from './components/ExpandoBox';
 function App() {
   const scrollerRef = useRef<HTMLDivElement>(null);
 
-  const { grid, setGrid, timeIndex, setTimeIndex, focusedRow, setFocusedRow, defaultRowMs, setDefaultRowMs, parser, preamble } = useHsStore()
+  const { grid, setGrid, timeIndex, setTimeIndex, focusedRow, setFocusedRow, defaultRowMs, setDefaultRowMs, parser, preamble, audioContext, setAnalyserNode } = useHsStore()
 
   const addCellToRows = () => {
     const newGrid = grid.map((row) => ({ ...row, cells: [...row.cells, '']}));
@@ -104,7 +104,16 @@ function App() {
                   <button 
                     onClick={() => {
                       const gridUpToThisRow = grid.slice(0, rindex + 1);
-                      playSong({ song: gridUpToThisRow, name: 'Untitled', parser, preambles: [preamble], playAudio: true, saveAsWav: false })
+                      playSong({ 
+                        song: gridUpToThisRow, 
+                        name: 'Untitled', 
+                        parser, 
+                        preamble, 
+                        playAudio: true, 
+                        saveAsWav: false,
+                        audioContext,
+                        setAnalyserNode
+                      })
                     }}
                     className='grow text-xs px-1 py-0.5 self-stretch'
                   >▶️</button>
