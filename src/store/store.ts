@@ -9,10 +9,10 @@ export interface HsStore {
     get: () => HsStore,
     set: (partial: HsStore | Partial<HsStore>) => void
     setGrid: (newGrid: Grid) => void
-    timeIndex: number
+    focusedChannel: number
     focusedRow: number
     setFocusedRow: (newFocusedRow: number) => void
-    setTimeIndex: (newTimeIndex: number) => void
+    setFocusedChannel: (focusedChannel: number) => void
     parser: Parser
     preamble: string
     setPreamble: (preamble: string) => void
@@ -65,10 +65,10 @@ export const useHsStore = create<HsStore>()(
             { msDuration: 10, cells: ['', '', ''] },
         ],
         setGrid: (newGrid: Grid) => set({ grid: newGrid }),
-        timeIndex: 0,
+        focusedChannel: 0,
         focusedRow: 0,
         setFocusedRow: (focusedRow: number) => set({ focusedRow }),
-        setTimeIndex: (timeIndex: number) => set({ timeIndex }),
+        setFocusedChannel: (focusedChannel: number) => set({ focusedChannel }),
         parser: parser(),
         preamble: `tone = 440\nsampleRate = 44100\n`,
         setPreamble: (preamble: string) => set({ preamble })

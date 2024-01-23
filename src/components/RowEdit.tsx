@@ -10,7 +10,7 @@ interface Props {
     rindex: number
 }
 export const EditRow: React.FC<Props> = ({ row, rindex }) => {
-    const { grid, setGrid, timeIndex, setTimeIndex, focusedRow, setFocusedRow, parser, defaultRowMs, setDefaultRowMs, preamble, audioContext, setAnalyserNode } = useHsStore()
+    const { grid, setGrid, focusedChannel, setFocusedChannel, focusedRow, setFocusedRow, parser, defaultRowMs, setDefaultRowMs, preamble, audioContext, setAnalyserNode } = useHsStore()
     
     const msToClockTime = (upToRowIndex: number) => {
       const msAfter = grid.slice(0, upToRowIndex + 1).reduce((acc, row) => acc + row.msDuration, 0);
@@ -38,7 +38,11 @@ export const EditRow: React.FC<Props> = ({ row, rindex }) => {
     };
     
     return (
-        <div key={rindex} className="flex grow">
+        <div 
+            key={rindex} 
+            className="flex grow"
+            id={`row-${rindex}`}
+        >
             <ExpandoBox className='text-xs'>
                 <div className='flex flex-col place-items-center'>
                     <span>x={msToSample(rindex)}</span>
@@ -53,14 +57,16 @@ export const EditRow: React.FC<Props> = ({ row, rindex }) => {
                     newGrid[rindex] = { ...newGrid[rindex], msDuration: parseInt(text) };
                     setGrid(newGrid);
                 }}
-                onFocus={() => { setTimeIndex(-1); setFocusedRow(rindex) }}
+                onFocus={() => { setFocusedRow(rindex) }}
                 placeholder='ms'
                 className='grow-0'
+                rindex={rindex}
+                cindex={-1}
             />
             {row.cells.map((cell, cindex) => (
                 <TextCell
                     key={cindex}
-                    active={cindex === timeIndex || rindex === focusedRow}
+                    active={cindex === focusedChannel || rindex === focusedRow}
                     text={cell}
                     placeholder={`x=${msToSample(rindex)}`}
                     onChange={(text) => {
@@ -70,7 +76,9 @@ export const EditRow: React.FC<Props> = ({ row, rindex }) => {
                         console.log({ rindex, cindex, text, grid })
                         setGrid(newGrid);
                     }}
-                    onFocus={() => { setTimeIndex(cindex); setFocusedRow(rindex) }}
+                    rindex={rindex}
+                    cindex={cindex}
+                    onFocus={() => { setFocusedChannel(cindex); setFocusedRow(rindex) }}
                 />
             ))}
             <div className='flex flex-col self-stretch'>
@@ -89,14 +97,14 @@ export const EditRow: React.FC<Props> = ({ row, rindex }) => {
                         onClick={() => {
                             const gridUpToThisRow = grid.slice(0, rindex + 1);
                             playSong({ 
-                            song: gridUpToThisRow, 
-                            name: 'Untitled', 
-                            parser, 
-                            preamble, 
-                            playAudio: true, 
-                            saveAsWav: false,
-                            audioContext,
-                            setAnalyserNode
+                                song: gridUpToThisRow, 
+                                name: 'Untitled', 
+                                parser, 
+                                preamble, 
+                                playAudio: true, 
+                                saveAsWav: false,
+                                audioContext,
+                                setAnalyserNode
                             })
                         }}
                         className='grow text-xs px-1 py-0.5 self-stretch'
