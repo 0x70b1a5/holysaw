@@ -3,6 +3,10 @@ import { Grid } from '../types/grid';
 import { Parser, parser, sec } from 'mathjs';
 import toWav from 'audiobuffer-to-wav'
 
+
+export const SAMPLE_RATE = 44100;
+export const MS_PER_SECOND = 1000
+
 export const playSequence = (baseFrequency: number, multipliers: number[]) => {
     // Create a sound with the base frequency
     let sineWave = new Pizzicato.Sound({ source: 'wave', options: { frequency: baseFrequency } });
@@ -40,23 +44,16 @@ export const getRowsAsFns = (grid: Grid) => {
     console.log(fns)
     return fns;
 }
-
-interface PlayOptions {
+;
+export interface RenderOptions {
     song: Grid, 
-    name: string,
     parser: Parser, 
-    preamble: string, 
-    playAudio: boolean
-    saveAsWav: boolean
-    audioContext: AudioContext
-    setAnalyserNode: (analyserNode: AnalyserNode) => void
+    preamble: string
 }
-export const playSong = ({ song, name, parser, preamble, playAudio, saveAsWav, audioContext, setAnalyserNode }: PlayOptions) => {
+export const renderSong = ({ parser, song, preamble }: RenderOptions) => {
     parser.clear();
     parser.evaluate(preamble);
     const rowsAsFns = getRowsAsFns(song);
-    const SAMPLE_RATE = 44100;
-    const MS_PER_SECOND = 1000;
     const yValues = [];
     let x = 0;
     let log = ''
@@ -75,6 +72,21 @@ export const playSong = ({ song, name, parser, preamble, playAudio, saveAsWav, a
             x++;
         }
     }
+    return { yValues, log }
+}
+
+export interface PlayOptions {
+    song: Grid, 
+    name: string,
+    parser: Parser, 
+    preamble: string, 
+    playAudio: boolean
+    saveAsWav: boolean
+    audioContext: AudioContext
+    setAnalyserNode: (analyserNode: AnalyserNode) => void
+}
+export const playSong = ({ song, name, parser, preamble, playAudio, saveAsWav, audioContext, setAnalyserNode }: PlayOptions) => {
+    const { yValues, log } = renderSong({ parser, song, preamble });
 
     const audioBuffer = audioContext.createBuffer(1, yValues.length, SAMPLE_RATE);
     audioBuffer.copyToChannel(new Float32Array(yValues), 0);

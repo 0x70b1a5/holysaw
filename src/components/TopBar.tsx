@@ -4,9 +4,12 @@ import { playSong } from "../utils/play";
 import { onSave, onLoad } from '../utils/file';
 import classNames from "classnames";
 import Waveform from "./Waveform";
+import {createWorkerFactory, useWorker} from '@shopify/react-web-worker';
+const createWorker = createWorkerFactory(() => import('../worker/worker'));
 
 const TopBar: React.FC = () => {
   const { grid, parser, preamble, setPreamble, output, setOutput, songName, setSongName, setGrid, setSongUrl, songUrl, logUrl, setLogUrl, audioContext, setAnalyserNode } = useHsStore()
+  const worker = useWorker(createWorker);
 
   const pixiRef = useRef<HTMLDivElement>(null);
 
