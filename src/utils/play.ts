@@ -19,28 +19,6 @@ export const playSequence = (baseFrequency: number, multipliers: number[]) => {
         sineWave.stop();
     }, multipliers.length * 1000);
 }
-
-export const getRowsAsFns = (grid: Grid) => {
-    const fns: string[] = [];
-    grid.forEach((row, idx) => {
-        let rowAsFn = `mathjsFnForRowNumber${idx}(x) = [`
-        row.cells.forEach((cell, cellIndex) => {
-            if (!cell) return;
-            try {
-                console.log({ secondIndex: idx, cellIndex, cell});
-                rowAsFn += `${cell}, `;
-            } catch (e) {
-                console.log(e);
-            }
-        });
-        rowAsFn += ']';
-        rowAsFn = rowAsFn.replace(', ]', ']');
-        fns.push(rowAsFn);
-    });
-    console.log(fns)
-    return fns;
-}
-
 interface PlayOptions {
     song: Grid, 
     name: string,
@@ -54,25 +32,27 @@ interface PlayOptions {
 export const playSong = ({ song, name, parser, preamble, playAudio, saveAsWav, audioContext, setAnalyserNode }: PlayOptions) => {
     parser.clear();
     parser.evaluate(preamble);
-    const rowsAsFns = getRowsAsFns(song);
     const SAMPLE_RATE = 44100;
     const MS_PER_SECOND = 1000;
     const yValues = [];
-    let x = 0;
     let log = ''
     for (let rowIdx = 0; rowIdx < song.length; rowIdx++) {
         const row = song[rowIdx];
-        parser.evaluate(rowsAsFns[rowIdx]);
         const rowSamples = row.msDuration * SAMPLE_RATE / MS_PER_SECOND;
         log += `row #${rowIdx}, ${row.msDuration}ms, ${rowSamples} samples\n`
-        for (let sample = 0; sample < rowSamples; sample++) {
-            for (let fn = 0; fn <= rowIdx; fn++) {
-                parser.evaluate(`mathjsFnForRowNumber${fn}(${x})`);
+        for (let cellIdx = 0; cellIdx < row.cells.length; cellIdx++) {
+            const cellValue = row.cells[cellIdx];
+            if (!cellValue) {
+                continue;
             }
+            parser.evaluate(`${cellValue}`);
+            console.log(`${cellValue}`)
+        }
+        for (let sample = 0; sample < rowSamples; sample++) {
+            parser.evaluate(`x=${sample}`);
             const y = parser.evaluate('y()');
-            log += `x: ${x}, y: ${y}\n`;
+            log += `x: ${sample}, y: ${y}\n`;
             yValues.push(y);
-            x++;
         }
     }
 
