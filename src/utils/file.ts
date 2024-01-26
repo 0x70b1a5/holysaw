@@ -22,8 +22,22 @@ export const onLoad = (setPreamble: (preamble: string) => void, setSongName: (so
       let data: any;
       try {
         data = JSON.parse(text);
-      } catch (e) {
-        alert('Error parsing file');
+        if (!data.preamble || !data.grid || !data.songName) {
+          throw new Error('Missing preamble, grid, or songName');
+        }
+        if (!data.grid.length) {
+          throw new Error('Grid must have at least one row');
+        }
+        if (!data.grid[0].cells.length) {
+          throw new Error('Grid must have at least one cell');
+        }
+        // validate grid type
+        const cell = data.grid[0].cells[0];
+        if (!cell.msDuration || !cell.content) {
+          throw new Error('Grid cell must have msDuration and content');
+        }
+      } catch (e: any) {
+        alert('Error parsing file: ' + e.message);
         return;
       }
       setPreamble(data.preamble);

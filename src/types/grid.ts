@@ -1,6 +1,8 @@
-export type Cell = string;
-export type Grid = GridRow[];
-export type GridRow = {
+export type Cell = { 
     msDuration: number, 
+    content: string
+};
+export type Grid = Channel[];
+export type Channel = {
     cells: Cell[]
 };

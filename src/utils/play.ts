@@ -36,6 +36,7 @@ export const playSong = ({ song, name, parser, preamble, playAudio, saveAsWav, a
     const MS_PER_SECOND = 1000;
     const yValues = [];
     let log = ''
+    /* OLD CODE
     for (let rowIdx = 0; rowIdx < song.length; rowIdx++) {
         const row = song[rowIdx];
         const rowSamples = row.msDuration * SAMPLE_RATE / MS_PER_SECOND;
@@ -54,6 +55,54 @@ export const playSong = ({ song, name, parser, preamble, playAudio, saveAsWav, a
             log += `x: ${sample}, y: ${y}\n`;
             yValues.push(y);
         }
+        
+    }
+    */
+    // NEW CODE
+    // The Grid is a list of Channels. Each Channel has a list of Cells. Each Cell has a duration and a content.
+    // The duration is the number of milliseconds that the Cell should be played for.
+    // The content is a string that should be evaluated by the mathjs parser.
+    // The parser has a variable x that is set to the current sample number.
+    // The parser has a function y() that returns the current sample value.
+    // We need to evaluate the content of each Cell for the duration of the Cell.
+    // Track the current sample, and for each Channel, determine which Cell is currently playing.
+    // Run those Cells through the parser and add the result to the yValues array.
+    // We need to evaluate all of the Cells at the current sample, so we need to loop through all of the Channels.
+    const channelCount = song.length;
+    const maxDurationMs = song.reduce((max, channel) => {
+        return Math.max(max, channel.cells.reduce((acc, cell) => {
+            return acc + cell.msDuration
+        }, 0));
+    }, 0)
+    const totalSamples = maxDurationMs * 44.1 // 44.1 samples per millisecond
+    for (let sample = 0; sample < totalSamples; sample++) {
+        if (sample % 1000 === 0) {
+            console.log(`${sample} / ${totalSamples}`);
+        }
+        parser.evaluate(`x=${sample}`);
+        for (let channelIdx = 0; channelIdx < channelCount; channelIdx++) {
+            const channel = song[channelIdx];
+            let cellIdx = 0;
+            while (
+                cellIdx < channel.cells.length && 
+                (
+                    // 44.1 * sum of msDuration up to now is less than sample
+                    44.1 * channel.cells.slice(0, cellIdx).reduce((acc, cell) => acc + cell.msDuration, 0) < sample
+                )
+            ) {
+                cellIdx++;
+            }
+            if (cellIdx < channel.cells.length) {
+                const cell = channel.cells[cellIdx];
+                if (cell.content) {
+                    parser.evaluate(`${cell.content}`);
+                    log += `${cell.content}\n`;
+                }
+            }
+        }
+        const y = parser.evaluate('y()');
+        log += `x: ${sample}, y: ${y}\n`;
+        yValues.push(y);
     }
 
     const audioBuffer = audioContext.createBuffer(1, yValues.length, SAMPLE_RATE);

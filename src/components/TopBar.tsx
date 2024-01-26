@@ -38,14 +38,14 @@ const TopBar: React.FC = () => {
       <div className="flex grow m-0.5 bg-green-100 rounded self-stretch">
         <Waveform pref={pixiRef} />
       </div>
-      <div className="flex flex-col self-stretch text-xs">
-        <div className="flex place-items-center grow self-stretch">
+      <div className="flex flex-col text-xs">
+        <div className="flex place-items-center grow">
           <label className="font-mono p-1 m-0">Name: </label>
           <input type='text' value={songName} onChange={(e) => setSongName(e.target.value)} className="grow" />
         </div>
         <div className="flex place-items-center grow self-stretch">
-          <button className="grow self-stretch w-20" onClick={onSave(preamble, grid, songName, document)}>💾 Save .ihs</button>
-          <button className="grow self-stretch w-20 relative">
+          <button className="grow w-20" onClick={onSave(preamble, grid, songName, document)}>💾 Save .ihs</button>
+          <button className="grow w-20 relative">
             <label htmlFor="file" className="absolute top-0 bottom-0 left-0 right-0 cursor-pointer"></label>
             <input type="file" id="file" onChange={onLoad(setPreamble, setSongName, setGrid)} className="hidden" />
             <span>📂 Load .ihs</span>

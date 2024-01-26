@@ -1,1 +1,22 @@
-{"preamble":"tone = 440\nsamplerate = 44100\nhz($freq) = samplerate/$freq\nsine($rate) = sin($rate*2pi/samplerate)\nsq = [0,1]","grid":[{"msDuration":100,"cells":["bit() = sq[floor(x/hz(440*vib(1)))%size(sq)+1]","vib($depth) = $depth^sine(10x)","y()=vib(1.2)"]},{"msDuration":100,"cells":["","",""]},{"msDuration":100,"cells":["","",""]},{"msDuration":100,"cells":["","",""]},{"msDuration":100,"cells":["","",""]},{"msDuration":100,"cells":["","",""]},{"msDuration":100,"cells":["","",""]},{"msDuration":1000,"cells":["","",""]}],"songName":"my-song"} 
+{
+    "preamble": "tone = 440\nsampleRate = 44100\n\nsine($hertz,$x) = sin(tau*$x*$hertz/44100) \n\nnotes($note,$octave,$cents) = [ tone = 16, 2^({ C: 0, Cs: 1, D: 2, Ds: 3, E: 4, F: 5, Fs: 6, G: 7, Gs: 8, A: 9, As: 10, B: 11 }[$note]/12) * 2^($cents/1200) * (2^$octave) * tone ][end]",
+    "grid": [
+        {
+            "cells": [
+                {
+                    "content": "y() = sine(notes(p[1],p[2],p[3]),x)",
+                    "msDuration": 100
+                }
+            ]
+        },
+        {
+            "cells": [
+                {
+                    "content": "p = [\"A\",4,0]",
+                    "msDuration": 100
+                }
+            ]
+        }
+    ],
+    "songName": "my-song"
+}

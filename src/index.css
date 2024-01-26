@@ -593,8 +593,24 @@ video {
   right: 0px;
 }
 
+.right-2 {
+  right: 0.5rem;
+}
+
 .top-0 {
   top: 0px;
+}
+
+.right-4 {
+  right: 1rem;
+}
+
+.right-16 {
+  right: 4rem;
+}
+
+.right-8 {
+  right: 2rem;
 }
 
 .m-0 {
@@ -649,12 +665,16 @@ video {
   width: 100vw;
 }
 
-.grow {
-  flex-grow: 1;
+.w-10 {
+  width: 2.5rem;
 }
 
-.grow-0 {
-  flex-grow: 0;
+.shrink-0 {
+  flex-shrink: 0;
+}
+
+.grow {
+  flex-grow: 1;
 }
 
 .cursor-pointer {
@@ -855,6 +875,11 @@ a.button:hover {
 .hover\:bg-gray-200:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(229 231 235 / var(--tw-bg-opacity));
+}
+
+.hover\:bg-green-200:hover {
+  --tw-bg-opacity: 1;
+  background-color: rgb(187 247 208 / var(--tw-bg-opacity));
 }
 
 .hover\:bg-red-200:hover {

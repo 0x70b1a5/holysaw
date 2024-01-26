@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Grid, GridRow } from '../types/grid';
+import { Grid, Channel } from '../types/grid';
 import { Parser, parser } from 'mathjs';
 import * as PIXI from 'pixi.js';
 import pixiApp from '../waveform/pixi';
@@ -10,8 +10,6 @@ export interface HsStore {
     set: (partial: HsStore | Partial<HsStore>) => void
     setGrid: (newGrid: Grid) => void
     focusedChannel: number
-    focusedRow: number
-    setFocusedRow: (newFocusedRow: number) => void
     setFocusedChannel: (focusedChannel: number) => void
     parser: Parser
     preamble: string
@@ -51,23 +49,16 @@ export const useHsStore = create<HsStore>()(
         songName: 'my-song',
         setSongName: (songName: string) => set({ songName }),
         output: [],
-        defaultRowMs: 1000,
+        defaultRowMs: 100,
         setDefaultRowMs: (defaultRowMs: number) => set({ defaultRowMs }),
         setOutput: (output: number[]) => set({ output }),
         grid: [
-            { msDuration: 10, cells: ['y() = sin(tone*tau*x/sampleRate)', '', ''] },
-            { msDuration: 10, cells: ['', '', ''] },
-            { msDuration: 10, cells: ['', '', ''] },
-            { msDuration: 10, cells: ['', '', ''] },
-            { msDuration: 10, cells: ['', '', ''] },
-            { msDuration: 10, cells: ['', '', ''] },
-            { msDuration: 10, cells: ['', '', ''] },
-            { msDuration: 10, cells: ['', '', ''] },
+            { cells: [{ msDuration: 10, content: 'y() = sin(tone*tau*x/sampleRate)' }, { msDuration: 10, content: '' }, { msDuration: 10, content: '' }] },
+            { cells: [{ msDuration: 10, content: '' }, { msDuration: 10, content: '' }, { msDuration: 10, content: '' }] },
+            { cells: [{ msDuration: 10, content: '' }, { msDuration: 10, content: '' }, { msDuration: 10, content: '' }] },
         ],
         setGrid: (newGrid: Grid) => set({ grid: newGrid }),
         focusedChannel: 0,
-        focusedRow: 0,
-        setFocusedRow: (focusedRow: number) => set({ focusedRow }),
         setFocusedChannel: (focusedChannel: number) => set({ focusedChannel }),
         parser: parser(),
         preamble: `tone = 440\nsampleRate = 44100\n`,
