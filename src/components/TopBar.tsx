@@ -6,7 +6,7 @@ import classNames from "classnames";
 import Waveform from "./Waveform";
 
 const TopBar: React.FC = () => {
-  const { grid, parser, preamble, setPreamble, output, setOutput, songName, setSongName, setGrid, setSongUrl, songUrl, logUrl, setLogUrl, audioContext, setAnalyserNode } = useHsStore()
+  const { grid, parser, preamble, setPreamble, plays, setPlays, output, setOutput, songName, setSongName, setGrid, setSongUrl, songUrl, logUrl, setLogUrl, audioContext, setAnalyserNode } = useHsStore()
 
   const pixiRef = useRef<HTMLDivElement>(null);
 
@@ -23,6 +23,7 @@ const TopBar: React.FC = () => {
     setOutput(yValues);
     setSongUrl(songUrl);
     setLogUrl(logUrl);
+    setPlays(plays+1);
   }
 
   return <div className="flex flex-col self-stretch place-items-center place-content-center">
@@ -54,16 +55,18 @@ const TopBar: React.FC = () => {
         <div className="flex place-items-center grow self-stretch">
           <button
             className={classNames("grow self-stretch w-20")}
-            onClick={() => playSong({ 
-              song: grid, 
-              name: songName,
-              parser, 
-              preamble,
-              playAudio: false, 
-              saveAsWav: true, 
-              audioContext, 
-              setAnalyserNode
-            })}
+            onClick={() => {
+              playSong({ 
+                song: grid, 
+                name: songName,
+                parser, 
+                preamble,
+                playAudio: false, 
+                saveAsWav: true, 
+                audioContext, 
+                setAnalyserNode
+              })
+            }}
           >
             📻 Save .wav  
           </button>

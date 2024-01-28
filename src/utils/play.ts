@@ -19,21 +19,13 @@ export const playSequence = (baseFrequency: number, multipliers: number[]) => {
         sineWave.stop();
     }, multipliers.length * 1000);
 }
-interface PlayOptions {
-    song: Grid, 
-    name: string,
-    parser: Parser, 
-    preamble: string, 
-    playAudio: boolean
-    saveAsWav: boolean
-    audioContext: AudioContext
-    setAnalyserNode: (analyserNode: AnalyserNode) => void
-}
-export const playSong = ({ song, name, parser, preamble, playAudio, saveAsWav, audioContext, setAnalyserNode }: PlayOptions) => {
+const SAMPLE_RATE = 44100;
+
+export const getValuesFromSong = (songMaster: Grid, parser: Parser, preamble: string, stopMs?: number) => {
+    console.log('getValuesFromSong', songMaster, parser, preamble, stopMs)
+    const song = [...songMaster]
     parser.clear();
     parser.evaluate(preamble);
-    const SAMPLE_RATE = 44100;
-    const MS_PER_SECOND = 1000;
     const yValues = [];
     let log = ''
     /* OLD CODE
@@ -68,20 +60,26 @@ export const playSong = ({ song, name, parser, preamble, playAudio, saveAsWav, a
     // Track the current sample, and for each Channel, determine which Cell is currently playing.
     // Run those Cells through the parser and add the result to the yValues array.
     // We need to evaluate all of the Cells at the current sample, so we need to loop through all of the Channels.
-    const channelCount = song.length;
-    const maxDurationMs = song.reduce((max, channel) => {
+    let maxDurationMs = song.reduce((max, channel) => {
         return Math.max(max, channel.cells.reduce((acc, cell) => {
             return acc + cell.msDuration
         }, 0));
     }, 0)
+    if (stopMs !== undefined && stopMs < maxDurationMs) {
+        maxDurationMs = stopMs;
+    }
     const totalSamples = maxDurationMs * 44.1 // 44.1 samples per millisecond
-    for (let sample = 0; sample < totalSamples; sample++) {
+    for (let sample = 0; sample <= totalSamples; sample++) {
         if (sample % 1000 === 0) {
             console.log(`${sample} / ${totalSamples}`);
         }
         parser.evaluate(`x=${sample}`);
-        for (let channelIdx = 0; channelIdx < channelCount; channelIdx++) {
-            const channel = song[channelIdx];
+        for (let channelIndex = 0; channelIndex < song.length; channelIndex++) {
+            const channel = song[channelIndex];
+            if (channel.executed) {
+                continue;
+            }
+            channel.executed = true;
             let cellIdx = 0;
             while (
                 cellIdx < channel.cells.length && 
@@ -95,15 +93,32 @@ export const playSong = ({ song, name, parser, preamble, playAudio, saveAsWav, a
             if (cellIdx < channel.cells.length) {
                 const cell = channel.cells[cellIdx];
                 if (cell.content) {
-                    parser.evaluate(`${cell.content}`);
+                    parser.evaluate(cell.content)
                     log += `${cell.content}\n`;
                 }
             }
         }
-        const y = parser.evaluate('y()');
+        let y = 0
+        y = parser.evaluate('y()');
         log += `x: ${sample}, y: ${y}\n`;
         yValues.push(y);
     }
+    song.forEach(channel => channel.executed = false)
+    return { yValues, log };
+}
+
+interface PlayOptions {
+    song: Grid, 
+    name: string,
+    parser: Parser, 
+    preamble: string, 
+    playAudio: boolean
+    saveAsWav: boolean
+    audioContext: AudioContext
+    setAnalyserNode: (analyserNode: AnalyserNode) => void
+}
+export const playSong = ({ song: songMaster, name, parser, preamble, playAudio, saveAsWav, audioContext, setAnalyserNode }: PlayOptions) => {
+    const { yValues, log } = getValuesFromSong(songMaster, parser, preamble)
 
     const audioBuffer = audioContext.createBuffer(1, yValues.length, SAMPLE_RATE);
     audioBuffer.copyToChannel(new Float32Array(yValues), 0);

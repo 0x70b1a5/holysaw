@@ -5,4 +5,5 @@ export type Cell = {
 export type Grid = Channel[];
 export type Channel = {
     cells: Cell[]
+    executed?: boolean
 };

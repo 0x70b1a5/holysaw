@@ -1,6 +1,7 @@
 import classNames from "classnames";
-import React from "react";
+import React, { useEffect } from "react";
 import { useHsStore } from "../store/store";
+import { getValuesFromSong } from "../utils/play";
 interface TextCellProps {
   text: string;
   onChange: (text: string) => void;
@@ -12,8 +13,11 @@ interface TextCellProps {
   cellIndex?: number
   channelIndex?: number
 }
-const TextCell: React.FC<TextCellProps> = ({ text, onChange, readonly, active, onFocus, placeholder, className, cellIndex, channelIndex }) => {
-  const { grid, setGrid } = useHsStore()
+const TextCell: React.FC<TextCellProps> = ({ text, onChange, readonly, active,onFocus, placeholder, className, cellIndex, channelIndex }) => {
+  const { grid, setGrid, preamble, plays, parser } = useHsStore()
+  const [expanded, setExpanded] = React.useState(false)
+  const [variableReadout, setVariableReadout] = React.useState('')
+
   const focusChannelAndRow = (ch: number, row: number) => {
     const channel = document.getElementById(`cell-${row}-${ch}`);
     if (channel) {
@@ -42,24 +46,24 @@ const TextCell: React.FC<TextCellProps> = ({ text, onChange, readonly, active, o
         focusChannelAndRow(channelIndex, cellIndex + 1);
       }
     }
-    // SHIFT-ENTER: PREV CELL
-    if (e.key === 'Enter' && e.shiftKey) {
-      e.preventDefault();
-      if (cellIndex === 0 && channelIndex > 0) {
-        focusChannelAndRow(channelIndex - 1, grid[channelIndex - 1].cells.length - 1);
-      } else {
-        focusChannelAndRow(channelIndex, cellIndex - 1);
-      }
-    }
-    // ENTER: NEXT CELL
-    else if (e.key === 'Enter') {
-      e.preventDefault();
-      if (cellIndex === grid[channelIndex].cells.length - 1 && channelIndex < grid.length - 1) {
-        focusChannelAndRow(channelIndex + 1, 0);
-      } else {
-        focusChannelAndRow(channelIndex, cellIndex + 1);
-      }
-    }
+    // // SHIFT-ENTER: PREV CELL
+    // if (e.key === 'Enter' && e.shiftKey) {
+    //   e.preventDefault();
+    //   if (cellIndex === 0 && channelIndex > 0) {
+    //     focusChannelAndRow(channelIndex - 1, grid[channelIndex - 1].cells.length - 1);
+    //   } else {
+    //     focusChannelAndRow(channelIndex, cellIndex - 1);
+    //   }
+    // }
+    // // ENTER: NEXT CELL
+    // else if (e.key === 'Enter') {
+    //   e.preventDefault();
+    //   if (cellIndex === grid[channelIndex].cells.length - 1 && channelIndex < grid.length - 1) {
+    //     focusChannelAndRow(channelIndex + 1, 0);
+    //   } else {
+    //     focusChannelAndRow(channelIndex, cellIndex + 1);
+    //   }
+    // }
   }
 
   const addCellBelow = () => {
@@ -82,7 +86,19 @@ const TextCell: React.FC<TextCellProps> = ({ text, onChange, readonly, active, o
     }
   }
 
-  return (<div className="relative flex">
+  useEffect(() => {
+    if (channelIndex === undefined || cellIndex === undefined || !expanded) return;
+    try {
+      const msAtEndOfThisCell = grid[channelIndex].cells.slice(0, cellIndex + 1).reduce((acc, cell) => acc + cell.msDuration, 0);
+      console.log({ channelIndex, cellIndex, text })
+      const { yValues, log } = getValuesFromSong(grid, parser, preamble, msAtEndOfThisCell);
+      setVariableReadout(JSON.stringify({...parser.getAll(), msAtEndOfThisCell}, null, 2))
+    } catch (e) {
+      console.error( 'Error: ' + JSON.stringify(e))
+    }
+  }, [text, plays])
+
+  return (<div className="relative flex flex-col">
     <textarea
       id={`cell-${channelIndex}-${cellIndex}`}
       value={text}
@@ -93,9 +109,9 @@ const TextCell: React.FC<TextCellProps> = ({ text, onChange, readonly, active, o
       placeholder={placeholder}
       onKeyDown={onkeyup}
     ></textarea>
-    {(channelIndex !== undefined && cellIndex !== undefined) && <>
+    {(channelIndex !== undefined && cellIndex !== undefined) && <div className="flex absolute top-0 right-0">
       <input
-        className="absolute text-xs px-1 py-0.5 bg-gray-100 hover:bg-gray-200 right-8 w-10 top-0"
+        className="text-xs px-1 py-0.5 bg-gray-100 hover:bg-gray-200 w-10 mr-1"
         value={grid[channelIndex].cells[cellIndex].msDuration}
         onChange={(e) => {
           const val = e.currentTarget.value
@@ -108,14 +124,23 @@ const TextCell: React.FC<TextCellProps> = ({ text, onChange, readonly, active, o
         }}
       />
       <button
+        onClick={() => setExpanded(!expanded)}
+        className='text-xs px-1 py-0.5 bg-gray-100 hover:bg-gray-200 mr-1'
+      >...</button>
+      <button
         onClick={addCellBelow}
-        className='absolute text-xs px-1 py-0.5 bg-gray-100 hover:bg-green-200 right-4 top-0'
+        className='text-xs px-1 py-0.5 bg-gray-100 hover:bg-green-200 mr-1'
       >+</button>
       <button
         onClick={deleteCell}
-        className='absolute text-xs px-1 py-0.5 bg-gray-100 hover:bg-red-200 right-0 top-0'
+        className='text-xs px-1 py-0.5 bg-gray-100 hover:bg-red-200 mr-1'
       >&times;</button>
-    </>}
+    </div>}
+    {expanded && <textarea 
+      className="grow self-stretch bg-gradient-to-bl from-gray-100 to-gray-200"
+      value={variableReadout}
+      readOnly
+    ></textarea>}
   </div>);
 };
 

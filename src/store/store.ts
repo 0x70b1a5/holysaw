@@ -30,6 +30,8 @@ export interface HsStore {
     setAudioContext: (audioContext: AudioContext) => void
     analyserNode: AnalyserNode | null
     setAnalyserNode: (analyserNode: AnalyserNode) => void
+    plays: number
+    setPlays: (plays: number) => void
 }
 
 export const useHsStore = create<HsStore>()(
@@ -53,15 +55,62 @@ export const useHsStore = create<HsStore>()(
         setDefaultRowMs: (defaultRowMs: number) => set({ defaultRowMs }),
         setOutput: (output: number[]) => set({ output }),
         grid: [
-            { cells: [{ msDuration: 10, content: 'y() = sin(tone*tau*x/sampleRate)' }, { msDuration: 10, content: '' }, { msDuration: 10, content: '' }] },
-            { cells: [{ msDuration: 10, content: '' }, { msDuration: 10, content: '' }, { msDuration: 10, content: '' }] },
-            { cells: [{ msDuration: 10, content: '' }, { msDuration: 10, content: '' }, { msDuration: 10, content: '' }] },
+            {
+                "cells": [
+                    {
+                        "msDuration": 100,
+                        "content": "tone = 256"
+                    },
+                    {
+                        "msDuration": 10,
+                        "content": ""
+                    },
+                    {
+                        "msDuration": 10,
+                        "content": ""
+                    }
+                ]
+            },
+            {
+                "cells": [
+                    {
+                        "msDuration": 10,
+                        "content": ""
+                    },
+                    {
+                        "msDuration": 10,
+                        "content": ""
+                    },
+                    {
+                        "msDuration": 10,
+                        "content": ""
+                    }
+                ]
+            },
+            {
+                "cells": [
+                    {
+                        "msDuration": 10,
+                        "content": ""
+                    },
+                    {
+                        "msDuration": 10,
+                        "content": ""
+                    },
+                    {
+                        "msDuration": 10,
+                        "content": ""
+                    }
+                ]
+            }
         ],
+        plays: 0,
+        setPlays: (plays: number) => set({ plays }),
         setGrid: (newGrid: Grid) => set({ grid: newGrid }),
         focusedChannel: 0,
         setFocusedChannel: (focusedChannel: number) => set({ focusedChannel }),
         parser: parser(),
-        preamble: `tone = 440\nsampleRate = 44100\n`,
+        preamble: `sine($hz) = sin(tau*x*$hz/44100)\ny() = sine(tone)`,
         setPreamble: (preamble: string) => set({ preamble })
     })
 );
