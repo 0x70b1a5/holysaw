@@ -32,6 +32,10 @@ class MusicTracker:
         self._setup_grid_frame(main_frame)
         self._setup_controls(main_frame)
 
+        # Initialize PatternUI
+        self.pattern_ui = PatternUI(self.top_frame, self)
+        self.pattern_ui.current_pattern_number.set("1")
+
     def _setup_bindings(self):
         self.root.protocol("WM_DELETE_WINDOW", self.cleanup_and_close)
         self.root.bind('<F5>', lambda e: self.toggle_play())
@@ -87,6 +91,22 @@ class MusicTracker:
     def _setup_controls(self, main_frame):
         controls = ttk.Frame(main_frame)
         controls.pack(fill=tk.X, padx=10, pady=10, side=tk.BOTTOM)
+
+        # Add rows control
+        rows_frame = ttk.Frame(controls)
+        rows_frame.pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Label(rows_frame, text="Rows:").pack(side=tk.LEFT)
+        self.rows_entry = ttk.Entry(rows_frame, width=5)
+        self.rows_entry.pack(side=tk.LEFT, padx=2)
+        self.rows_entry.insert(0, "64")
+
+        # Add speed control
+        speed_frame = ttk.Frame(controls)
+        speed_frame.pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Label(speed_frame, text="Speed (rows/sec):").pack(side=tk.LEFT)
+        self.speed_entry = ttk.Entry(speed_frame, width=5)
+        self.speed_entry.pack(side=tk.LEFT, padx=2)
+        self.speed_entry.insert(0, "4")
 
         self.play_button = ttk.Button(controls, text="Play", command=self.toggle_play)
         self.play_button.pack(side=tk.LEFT, padx=2)
@@ -150,7 +170,13 @@ class MusicTracker:
         # Initialize persistent vars
         persistent_vars_dict = {var: 0 for var in all_variables}
         persistent_vars_dict.update(self.formula.globals)
-        persistent_vars_dict['speed'] = float(self.speed_entry.get() or 4)
+        try:
+            persistent_vars_dict['speed'] = float(self.speed_entry.get() or 4)
+        except (ValueError, TypeError):
+            persistent_vars_dict['speed'] = 4.0
+
+        # Update globals before generation
+        self.formula.update_globals(globals_text)
 
         for pattern_num in self.pattern_ui.pattern_manager.order_list:
             if not self.is_playing and samples_per_row is None or self._stop.is_set():
@@ -163,6 +189,9 @@ class MusicTracker:
                 row_vars_dict = persistent_vars_dict.copy()
                 has_updates = False
 
+                # Store previous row's values for interpolation
+                prev_vars_dict = row_vars_dict.copy()
+
                 for col_idx, cell_value in enumerate(row):
                     if cell_value.strip():
                         has_updates = True
@@ -172,31 +201,59 @@ class MusicTracker:
                             print(f"Error in row {row_idx}, col {col_idx}: {e}")
 
                 if 'speed' in row_vars_dict:
-                    persistent_vars_dict['speed'] = row_vars_dict['speed']
+                    try:
+                        speed_value = float(row_vars_dict['speed'])
+                        persistent_vars_dict['speed'] = speed_value
+                    except (ValueError, TypeError):
+                        pass
 
-                row_speed = max(0.1, float(row_vars_dict.get('speed', persistent_vars_dict['speed'])))
+                try:
+                    row_speed = max(0.1, float(persistent_vars_dict['speed']))
+                except (ValueError, TypeError):
+                    row_speed = 4.0
 
                 if samples_per_row is None:
-                    row_samples = int(self.audio.sample_rate / row_speed)
+                    row_samples = int(44100 / row_speed)
                 else:
                     row_samples = samples_per_row
 
-                samples = self.formula.generate_samples(
-                    self.formula_text.get("1.0", tk.END),
-                    current_t,
-                    row_samples,
-                    persistent_vars_dict if not has_updates else row_vars_dict
-                )
-                current_t += row_samples
+                # Generate time array for this row
+                t = np.linspace(current_t, current_t + row_samples - 1, row_samples, dtype=np.float32)
 
                 if has_updates:
-                    persistent_vars_dict.update(row_vars_dict)
+                    try:
+                        # Create interpolation factors
+                        interp = np.linspace(0, 1, row_samples)[:, np.newaxis]
 
-                if len(buffer) == 0:
-                    buffer = samples
+                        # Interpolate numerical variables
+                        interpolated_vars = {}
+                        for var in row_vars_dict:
+                            if var in prev_vars_dict and isinstance(row_vars_dict[var], (int, float)):
+                                start_val = float(prev_vars_dict[var])
+                                end_val = float(row_vars_dict[var])
+                                interpolated_vars[var] = start_val + (end_val - start_val) * interp
+                            else:
+                                interpolated_vars[var] = row_vars_dict[var]
+
+                        # Update t in both dictionaries
+                        interpolated_vars['t'] = t
+                        self.formula.globals['t'] = t
+
+                        # Execute formula with interpolated variables
+                        exec(formula_text, self.formula.globals, interpolated_vars)
+                        if 'output' in interpolated_vars:
+                            output = interpolated_vars['output']
+                            if isinstance(output, np.ndarray):
+                                buffer = np.append(buffer, output.astype(np.float32))
+                            else:
+                                buffer = np.append(buffer, np.full(row_samples, output, dtype=np.float32))
+                    except Exception as e:
+                        print(f"Error generating audio: {e}")
+                        buffer = np.append(buffer, np.zeros(row_samples, dtype=np.float32))
                 else:
-                    buffer = self.audio.crossfade(buffer, samples)
-                    buffer = np.append(buffer, samples[self.audio.fade_samples:])
+                    buffer = np.append(buffer, np.zeros(row_samples, dtype=np.float32))
+
+                current_t += row_samples
 
         self.last_t = current_t
         return buffer * 0.5
@@ -343,3 +400,26 @@ class MusicTracker:
 
         except Exception as e:
             messagebox.showerror("Export Error", str(e))
+
+    def update_grid(self):
+        """Update the grid with the current pattern data"""
+        try:
+            rows = max(1, int(self.rows_entry.get()))
+            existing = self.grid.get_values() if hasattr(self, 'grid') else None
+            self.grid.update(rows, existing)
+
+            # Auto-save pattern when row count changes
+            try:
+                pattern_num = int(self.pattern_ui.current_pattern_number.get())
+                if pattern_num in self.pattern_ui.pattern_manager.patterns:
+                    pattern = self.pattern_ui.pattern_manager.patterns[pattern_num]
+                    if isinstance(pattern, dict):
+                        pattern['data'] = self.grid.get_values()
+            except ValueError:
+                pass
+
+            # Update scroll region
+            self.grid_frame.update_idletasks()
+            self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+        except Exception as e:
+            messagebox.showerror("Error", str(e))

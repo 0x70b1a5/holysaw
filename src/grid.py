@@ -55,23 +55,59 @@ class Grid:
             )
 
     def update(self, rows: int, existing: Optional[List[List[str]]] = None):
+        """Update grid with proper handling of 32 columns"""
+        # Default first row with extended columns
+        defaults = ["{x}", "{v}", "{speed}"] + [""] * (self.num_columns - 3)
+
+        # Store current focus position if any cell is focused
+        focused = self.grid_frame.focus_get()
+        was_focused = isinstance(focused, ttk.Entry) and focused in [cell for row in self.cells for cell in row]
+
+        # Destroy excess rows if reducing row count
         while len(self.cells) > rows:
             for cell in self.cells[-1]:
                 cell.destroy()
             self.cells.pop()
 
+        # Update existing or create new rows as needed
         if len(self.cells) < rows:
             for r in range(len(self.cells), rows):
                 row = []
                 for c in range(self.num_columns):
-                    cell = self._create_cell(r, c)
+                    cell = ttk.Entry(self.grid_frame, width=self.cell_width)
+                    cell.grid(row=r+1, column=c, padx=1, pady=1)
+
+                    # Set cell value based on existing data or defaults
                     if existing and r < len(existing) and c < len(existing[r]):
                         cell.insert(0, existing[r][c])
-                    elif r == 0 and c < 3:  # Default first row values
-                        defaults = ["{x}", "{v}", "{speed}"]
+                    elif r == 0:
                         cell.insert(0, defaults[c])
+
+                    # Add bindings
+                    cell.bind('<FocusIn>', lambda e, r=r, c=c: self.cell_focused(r, c))
+                    cell.bind('<Return>', self.handle_return)
+                    cell.bind('<KeyPress>', self.handle_keypress)
+                    cell.bind('<Tab>', self.handle_tab)
+                    cell.bind('<Shift-Tab>', self.handle_shift_tab)
+
                     row.append(cell)
                 self.cells.append(row)
+        else:
+            # Update existing rows with new values
+            for r in range(len(self.cells)):
+                for c in range(self.num_columns):
+                    if existing and r < len(existing) and c < len(existing[r]):
+                        self.cells[r][c].delete(0, tk.END)
+                        self.cells[r][c].insert(0, existing[r][c])
+                    elif r == 0:
+                        self.cells[r][c].delete(0, tk.END)
+                        self.cells[r][c].insert(0, defaults[c])
+
+        # Restore focus if needed
+        if was_focused:
+            self.current_row = min(self.current_row, len(self.cells)-1)
+            self.current_col = min(self.current_col, self.num_columns-1)
+            self.cells[self.current_row][self.current_col].focus_set()
 
     def _create_cell(self, row: int, col: int) -> ttk.Entry:
         cell = ttk.Entry(self.grid_frame, width=self.cell_width)
