@@ -153,13 +153,18 @@ class MusicTracker:
         buffer = np.array([], dtype=np.float32)
         current_t = self.last_t
 
-        # Collect all possible variables
+        # Collect all possible variables from all sources
         all_variables = set()
+
+        # From formula
         formula_text = self.formula_text.get("1.0", tk.END)
-        globals_text = self.globals_text.get("1.0", tk.END)
         all_variables.update(re.findall(r'\b([a-zA-Z_][a-zA-Z0-9_]*)\b', formula_text))
+
+        # From globals
+        globals_text = self.globals_text.get("1.0", tk.END)
         all_variables.update(re.findall(r'\b([a-zA-Z_][a-zA-Z0-9_]*)\b', globals_text))
 
+        # From curly braces in grid
         for row in self.grid.cells:
             for cell in row:
                 value = cell.get().strip()
@@ -167,7 +172,7 @@ class MusicTracker:
                 if var_match:
                     all_variables.add(var_match.group(1))
 
-        # Initialize persistent vars
+        # Initialize persistent vars with defaults
         persistent_vars_dict = {var: 0 for var in all_variables}
         persistent_vars_dict.update(self.formula.globals)
         try:
@@ -186,52 +191,44 @@ class MusicTracker:
             playback_data = self.grid.get_playback_values()
 
             for row_idx, row in enumerate(playback_data):
+                # Start with previous row's variables
                 row_vars_dict = persistent_vars_dict.copy()
                 has_updates = False
 
-                # Store previous row's values for interpolation
-                prev_vars_dict = row_vars_dict.copy()
-
+                # Process each cell in the row
                 for col_idx, cell_value in enumerate(row):
-                    if cell_value.strip():
-                        has_updates = True
+                    if cell_value:
                         try:
-                            exec(cell_value, {}, row_vars_dict)
+                            # Execute the cell value as Python code to update variables
+                            exec(cell_value, self.formula.globals, row_vars_dict)
+                            has_updates = True
                         except Exception as e:
-                            print(f"Error in row {row_idx}, col {col_idx}: {e}")
+                            print(f"Error processing cell: {e}. Cell value: {cell_value}")
 
-                if 'speed' in row_vars_dict:
-                    try:
-                        speed_value = float(row_vars_dict['speed'])
-                        persistent_vars_dict['speed'] = speed_value
-                    except (ValueError, TypeError):
-                        pass
-
+                # Calculate number of samples for this row
                 try:
-                    row_speed = max(0.1, float(persistent_vars_dict['speed']))
+                    row_speed = float(row_vars_dict.get('speed', 4.0))
+                    row_samples = int(44100 / row_speed) if samples_per_row is None else samples_per_row
                 except (ValueError, TypeError):
                     row_speed = 4.0
-
-                if samples_per_row is None:
-                    row_samples = int(44100 / row_speed)
-                else:
-                    row_samples = samples_per_row
-
-                # Generate time array for this row
-                t = np.linspace(current_t, current_t + row_samples - 1, row_samples, dtype=np.float32)
+                    row_samples = int(44100 / row_speed) if samples_per_row is None else samples_per_row
 
                 if has_updates:
                     try:
+                        # Create time array for this row
+                        t = np.linspace(current_t, current_t + row_samples - 1, row_samples, dtype=np.float32)
+
                         # Create interpolation factors
-                        interp = np.linspace(0, 1, row_samples)[:, np.newaxis]
+                        interp = np.linspace(0, 1, row_samples, dtype=np.float32)
 
                         # Interpolate numerical variables
                         interpolated_vars = {}
                         for var in row_vars_dict:
-                            if var in prev_vars_dict and isinstance(row_vars_dict[var], (int, float)):
-                                start_val = float(prev_vars_dict[var])
+                            if var in persistent_vars_dict and isinstance(row_vars_dict[var], (int, float)):
+                                start_val = float(persistent_vars_dict[var])
                                 end_val = float(row_vars_dict[var])
-                                interpolated_vars[var] = start_val + (end_val - start_val) * interp
+                                interpolated_vals = start_val + (end_val - start_val) * interp
+                                interpolated_vars[var] = interpolated_vals
                             else:
                                 interpolated_vars[var] = row_vars_dict[var]
 
@@ -240,13 +237,18 @@ class MusicTracker:
                         self.formula.globals['t'] = t
 
                         # Execute formula with interpolated variables
-                        exec(formula_text, self.formula.globals, interpolated_vars)
-                        if 'output' in interpolated_vars:
-                            output = interpolated_vars['output']
+                        local_vars = {**self.formula.globals, **interpolated_vars}
+                        exec(formula_text, self.formula.globals, local_vars)
+
+                        if 'output' in local_vars:
+                            output = local_vars['output']
                             if isinstance(output, np.ndarray):
                                 buffer = np.append(buffer, output.astype(np.float32))
                             else:
-                                buffer = np.append(buffer, np.full(row_samples, output, dtype=np.float32))
+                                buffer = np.append(buffer, np.full(row_samples, float(output), dtype=np.float32))
+                        else:
+                            buffer = np.append(buffer, np.zeros(row_samples, dtype=np.float32))
+
                     except Exception as e:
                         print(f"Error generating audio: {e}")
                         buffer = np.append(buffer, np.zeros(row_samples, dtype=np.float32))
@@ -254,9 +256,10 @@ class MusicTracker:
                     buffer = np.append(buffer, np.zeros(row_samples, dtype=np.float32))
 
                 current_t += row_samples
+                persistent_vars_dict = row_vars_dict
 
         self.last_t = current_t
-        return buffer * 0.5
+        return buffer * 0.5  # Reduce amplitude to avoid clipping
 
     def play_audio(self):
         try:
