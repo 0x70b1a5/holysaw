@@ -1,0 +1,50 @@
+{
+  "version": "1.0",
+  "settings": {
+    "rows": 64,
+    "speed": 8.0,
+    "base_freq": 440.0
+  },
+  "vars": ["pitch", "vol", "duty", "arp", "lfo", "fx"],
+  "globals": {
+    "imports": ["numpy as np"],
+    "constants": {
+      "s": "44100"
+    },
+    "waveforms": {
+      "sq": "def sq(p, v, duty=0.5):\n    phase = (p.astype(np.float32) / 44100) % 1\n    return (((phase < float(duty)) * 2 - 1) * float(v)).astype(np.float32)",
+      "saw": "def saw(p, v):\n    phase = (p.astype(np.float32) / 44100) % 1\n    return ((phase * 2 - 1) * float(v)).astype(np.float32)"
+    },
+    "effects": {
+      "arpeggio": "def arpeggio(base_freq, pattern, speed=16):\n    step = (t * speed).astype(np.int32) % len(pattern)\n    return base_freq * (2 ** (pattern[step] / 12))",
+      "vibrato": "def vibrato(freq, depth=0.3, speed=6):\n    return freq * (1 + depth * np.sin(2 * np.pi * speed * t / 44100))"
+    }
+  },
+  "formula": "output = sq(t * arpeggio(float(pitch), eval(arp)), float(vol), float(duty)) + saw(t * vibrato(float(pitch)), float(vol) * 0.3)",
+  "patterns": {
+    "1": {
+      "name": "Lead Melody",
+      "rows": {
+        "0": {"pitch": "440", "vol": "0.3", "duty": "0.3", "arp": "[0, 4, 7, 12]"},
+        "4": {"pitch": "493.88", "vol": "0.3", "duty": "0.3", "arp": "[0, 4, 7, 12]"},
+        "8": {"pitch": "523.25", "vol": "0.3", "duty": "0.3", "arp": "[0, 3, 7, 10]"},
+        "12": {"pitch": "587.33", "vol": "0.3", "duty": "0.3", "arp": "[0, 4, 7, 11]"},
+        "16": {"pitch": "659.26", "vol": "0.3", "duty": "0.3", "arp": "[0, 4, 7, 12]"},
+        "20": {"pitch": "587.33", "vol": "0.3", "duty": "0.3", "arp": "[0, 3, 7, 10]"},
+        "24": {"pitch": "523.25", "vol": "0.3", "duty": "0.3", "arp": "[0, 4, 7, 11]"},
+        "28": {"pitch": "493.88", "vol": "0.3", "duty": "0.3", "arp": "[0, 4, 7, 12]"}
+      }
+    },
+    "2": {
+      "name": "Bass Line",
+      "rows": {
+        "0": {"pitch": "110", "vol": "0.4", "duty": "0.5", "arp": "[0, 12, 0, 12]"},
+        "8": {"pitch": "123.47", "vol": "0.4", "duty": "0.5", "arp": "[0, 12, 0, 12]"},
+        "16": {"pitch": "130.81", "vol": "0.4", "duty": "0.5", "arp": "[0, 12, 0, 12]"},
+        "24": {"pitch": "146.83", "vol": "0.4", "duty": "0.5", "arp": "[0, 12, 0, 12]"}
+      }
+    }
+  },
+  "order": [1, 2, 1, 2, 1, 2, 1, 2],
+  "current_pattern": "1"
+}

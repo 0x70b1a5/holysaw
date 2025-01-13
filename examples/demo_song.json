@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "settings": {
+    "rows": 64,
+    "speed": 4,
+    "base_freq": 432
+  },
+  "vars": {
+    "pitch_1": 0,
+    "v": 1,
+    "speed": 2,
+    "pitch_2": 3,
+    "v2": 4,
+    "inst_1": 10,
+    "inst_2": 11,
+    "inst_3": 12
+  },
+  "globals": {
+    "imports": ["numpy as np"],
+    "constants": {
+      "s": 44100,
+      "f": 432
+    },
+    "waveforms": {
+      "sine": "lambda p, v: np.sin((p * f / s) * np.pi) * v",
+      "saw": "lambda p, v: ((p/2 * f / s + 0.5) % 1 * 2 - 1) * v",
+      "sq": "lambda p, v, duty=0.5: (((p * f / s) % 1 < duty) * 2 - 1) * v",
+      "tri": "lambda p, v: (2 * abs(2 * ((p * f / s) % 1 - 0.5)) - 1) * v",
+      "noise": "lambda v: (np.random.random() * 2 - 1) * v"
+    },
+    "effects": {
+      "plain": "lambda wave_func, p, v: wave_func(p, v)",
+      "vib": "lambda wave_func, p, v, rate=5, depth=0.1: wave_func(np.cumsum((p - np.roll(p, 1)) * (1 + depth * np.sin(2 * np.pi * rate * p/s))), v)",
+      "tr": "lambda wave_func, p, v, rate=5, depth=0.1: wave_func(np.cumsum((p - np.roll(p, 1)) * (1 + depth * ((np.sin(2 * np.pi * rate * p/s) > 0) * 2 - 1))), v)"
+    }
+  },
+  "formula": "output = (apply_effect(fx_1, inst_1, cents(pitch_1)*t, v, rate=r, depth=d) + apply_effect(fx_2, inst_2, cents(pitch_2)*t, v2, rate=r2, depth=d2) + apply_effect(fx_3, inst_3, cents(pitch_3)*t, v3, rate=r3, depth=d3))",
+  "patterns": {
+    "1": {
+      "name": "Bass",
+      "cells": {
+        "0": {"pitch_1": "440", "v": "0.3", "speed": "4", "inst_1": "sq"},
+        "16": {"pitch_1": "220", "v": "0.25", "speed": "4", "inst_1": "sq"},
+        "32": {"pitch_1": "110", "v": "0.2", "speed": "4", "inst_1": "sq"},
+        "48": {"pitch_1": "220", "v": "0.15", "speed": "4", "inst_1": "sq"}
+      }
+    },
+    "2": {
+      "name": "Lead",
+      "cells": {
+        "0": {"pitch_2": "880", "v2": "0.2", "inst_2": "sine"},
+        "16": {"pitch_2": "1760", "v2": "0.25", "inst_2": "sine"},
+        "32": {"pitch_2": "1320", "v2": "0.2", "inst_2": "sine"},
+        "48": {"pitch_2": "990", "v2": "0.15", "inst_2": "sine"}
+      }
+    },
+    "3": {
+      "name": "Pad",
+      "cells": {
+        "0": {"pitch_3": "440", "v3": "0.1", "inst_3": "saw"},
+        "16": {"pitch_3": "440", "v3": "0.15", "inst_3": "saw"},
+        "32": {"pitch_3": "440", "v3": "0.2", "inst_3": "saw"},
+        "48": {"pitch_3": "440", "v3": "0.15", "inst_3": "saw"}
+      }
+    }
+  },
+  "order": [1, 2, 3, 1, 2, 3]
+}

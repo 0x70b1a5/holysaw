@@ -1,0 +1,54 @@
+{
+  "version": "1.0",
+  "settings": {
+    "rows": 64,
+    "speed": 16.0,
+    "base_freq": 440.0
+  },
+  "vars": ["freq", "vol", "cutoff", "res", "env_speed", "env_depth"],
+  "globals": {
+    "imports": ["numpy as np"],
+    "constants": {
+      "s": "44100"
+    },
+    "waveforms": {
+      "saw": "def saw(p, v):\n    phase = (p.astype(np.float32) / 44100) % 1\n    return ((phase * 2 - 1) * float(v)).astype(np.float32)",
+      "acid": "def acid(p, v, cutoff, res=0.8):\n    sig = ((p.astype(np.float32) / 44100) % 1) * 2 - 1\n    filt = np.tanh(float(res) * np.sin(2 * np.pi * float(cutoff) * t / 44100))\n    return (sig * filt * float(v)).astype(np.float32)"
+    },
+    "effects": {
+      "filter_env": "def filter_env(base_cutoff, env_speed=8, env_depth=2000):\n    env = np.exp(-env_speed * (t % (44100 / env_speed)) / 44100)\n    return base_cutoff + env_depth * env",
+      "slide": "def slide(freq1, freq2, slide_time=0.1):\n    t_norm = np.minimum(t / (44100 * slide_time), 1)\n    return freq1 + (freq2 - freq1) * t_norm"
+    }
+  },
+  "formula": "output = acid(t * float(freq), float(vol), filter_env(float(cutoff), float(env_speed), float(env_depth)), float(res))",
+  "patterns": {
+    "1": {
+      "name": "Acid Sequence 1",
+      "rows": {
+        "0": {"freq": "110", "vol": "0.4", "cutoff": "500", "res": "0.9", "env_speed": "16", "env_depth": "2000"},
+        "2": {"freq": "146.83", "cutoff": "800"},
+        "4": {"freq": "110", "cutoff": "400"},
+        "6": {"freq": "164.81", "cutoff": "1200"},
+        "8": {"freq": "110", "cutoff": "600"},
+        "10": {"freq": "130.81", "cutoff": "1500"},
+        "12": {"freq": "110", "cutoff": "300"},
+        "14": {"freq": "174.61", "cutoff": "2000"}
+      }
+    },
+    "2": {
+      "name": "Acid Sequence 2",
+      "rows": {
+        "0": {"freq": "220", "vol": "0.4", "cutoff": "1000", "res": "0.95", "env_speed": "32", "env_depth": "3000"},
+        "2": {"freq": "293.66", "cutoff": "1600"},
+        "4": {"freq": "220", "cutoff": "800"},
+        "6": {"freq": "329.63", "cutoff": "2400"},
+        "8": {"freq": "220", "cutoff": "1200"},
+        "10": {"freq": "261.63", "cutoff": "3000"},
+        "12": {"freq": "220", "cutoff": "600"},
+        "14": {"freq": "349.23", "cutoff": "4000"}
+      }
+    }
+  },
+  "order": [1, 1, 2, 2, 1, 2, 1, 2],
+  "current_pattern": "1"
+}

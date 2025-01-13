@@ -1,0 +1,46 @@
+{
+  "version": "1.0",
+  "settings": {
+    "rows": 64,
+    "speed": 2.0,
+    "base_freq": 440.0
+  },
+  "vars": ["freq1", "freq2", "freq3", "vol1", "vol2", "vol3", "lfo_rate", "lfo_depth"],
+  "globals": {
+    "imports": ["numpy as np"],
+    "constants": {
+      "s": "44100"
+    },
+    "waveforms": {
+      "sine": "def sine(p, v):\n    phase = (p.astype(np.float32) / 44100)\n    return (np.sin(2 * np.pi * phase) * float(v)).astype(np.float32)",
+      "soft_sine": "def soft_sine(p, v):\n    phase = (p.astype(np.float32) / 44100)\n    raw = np.sin(2 * np.pi * phase)\n    return (np.tanh(2 * raw) * float(v)).astype(np.float32)"
+    },
+    "effects": {
+      "chorus": "def chorus(freq, depth=0.3, rate=0.5):\n    mod = 1 + depth * np.sin(2 * np.pi * rate * t / 44100)\n    return freq * mod",
+      "shimmer": "def shimmer(freq, octaves=[0, 1, 2], mix=0.5):\n    return sum(freq * (2 ** oct) * (mix ** oct) for oct in octaves)"
+    }
+  },
+  "formula": "output = (sine(t * chorus(float(freq1), float(lfo_depth), float(lfo_rate)), float(vol1)) + \n         soft_sine(t * shimmer(float(freq2), [0, 1, 2], 0.3), float(vol2)) + \n         sine(t * chorus(float(freq3), float(lfo_depth)*1.5, float(lfo_rate)*1.2), float(vol3)))",
+  "patterns": {
+    "1": {
+      "name": "Ethereal Pad",
+      "rows": {
+        "0": {"freq1": "220", "freq2": "220", "freq3": "330", "vol1": "0.2", "vol2": "0.15", "vol3": "0.1", "lfo_rate": "0.5", "lfo_depth": "0.01"},
+        "16": {"freq1": "246.94", "freq2": "246.94", "freq3": "370.41", "vol1": "0.18", "vol2": "0.13", "vol3": "0.09", "lfo_rate": "0.6", "lfo_depth": "0.015"},
+        "32": {"freq1": "261.63", "freq2": "261.63", "freq3": "392.44", "vol1": "0.15", "vol2": "0.12", "vol3": "0.08", "lfo_rate": "0.7", "lfo_depth": "0.02"},
+        "48": {"freq1": "293.66", "freq2": "293.66", "freq3": "440", "vol1": "0.12", "vol2": "0.1", "vol3": "0.07", "lfo_rate": "0.8", "lfo_depth": "0.025"}
+      }
+    },
+    "2": {
+      "name": "High Shimmer",
+      "rows": {
+        "0": {"freq1": "440", "freq2": "440", "freq3": "660", "vol1": "0.1", "vol2": "0.08", "vol3": "0.06", "lfo_rate": "1.0", "lfo_depth": "0.03"},
+        "16": {"freq1": "493.88", "freq2": "493.88", "freq3": "740.82", "vol1": "0.12", "vol2": "0.09", "vol3": "0.07", "lfo_rate": "1.2", "lfo_depth": "0.035"},
+        "32": {"freq1": "523.25", "freq2": "523.25", "freq3": "784.88", "vol1": "0.15", "vol2": "0.1", "vol3": "0.08", "lfo_rate": "1.4", "lfo_depth": "0.04"},
+        "48": {"freq1": "587.33", "freq2": "587.33", "freq3": "880", "vol1": "0.18", "vol2": "0.12", "vol3": "0.09", "lfo_rate": "1.6", "lfo_depth": "0.045"}
+      }
+    }
+  },
+  "order": [1, 1, 2, 2, 1, 1],
+  "current_pattern": "1"
+}

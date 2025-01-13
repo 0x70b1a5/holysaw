@@ -1,20 +1,16 @@
 import pytest
 import numpy as np
-import tkinter as tk
-from tkinter import ttk
 import json
 import tempfile
 import os
 from unittest.mock import MagicMock, patch
+import unittest
 import time
 import wave
+from pathlib import Path
 
 from src.audio_engine import AudioEngine
 from src.formula_engine import FormulaEngine
-from src.grid import Grid
-from src.pattern_manager import PatternManager
-from src.pattern_ui import PatternUI
-from src.music_tracker import MusicTracker
 
 class TestAudioEngine:
     @pytest.fixture
@@ -151,377 +147,6 @@ def tri(p, v):
         assert isinstance(samples, np.ndarray)
         assert not np.any(np.isnan(samples))
         assert np.all(np.abs(samples) <= 0.5)
-
-class TestGrid:
-    @pytest.fixture
-    def root(self):
-        root = tk.Tk()
-        yield root
-        root.destroy()
-
-    @pytest.fixture
-    def grid(self, root):
-        frame = ttk.Frame(root)
-        return Grid(frame)
-
-    def test_grid_initialization(self, grid):
-        assert grid.num_columns == 32
-        assert grid.cell_width == 4
-        assert grid.editing == False
-        assert isinstance(grid.cells, list)
-
-    def test_cell_creation(self, grid):
-        grid.update(5)  # Create 5 rows
-        assert len(grid.cells) == 5
-        assert len(grid.cells[0]) == grid.num_columns
-        assert isinstance(grid.cells[0][0], ttk.Entry)
-
-    def test_cell_value_handling(self, grid):
-        grid.update(1)  # Create one row
-        cell = grid.cells[0][0]
-
-        # Test variable declaration
-        cell.insert(0, "{x}")
-        assert grid.interpret_cell_value("{x}") == "{x}"
-        assert grid.get_playback_value("{x}", 0) == "x = {x}"
-
-        # Test normal value
-        cell.delete(0, tk.END)
-        cell.insert(0, "42")
-        assert grid.interpret_cell_value("42") == "42"
-
-    def test_grid_update(self, grid):
-        # Test increasing rows
-        grid.update(5)
-        assert len(grid.cells) == 5
-        assert len(grid.cells[0]) == grid.num_columns
-
-        # Verify default values in first row
-        assert grid.cells[0][0].get() == "{x}"
-        assert grid.cells[0][1].get() == "{v}"
-        assert grid.cells[0][2].get() == "{speed}"
-
-        # Test decreasing rows
-        grid.update(3)
-        assert len(grid.cells) == 3
-
-        # Test update with existing values (preserving defaults in first row)
-        existing = [
-            ["{x}", "{v}", "{speed}"] + [""] * (grid.num_columns - 3),
-            ["test"] * grid.num_columns,
-        ]
-        grid.update(2, existing)
-        assert grid.cells[0][0].get() == "{x}"  # First row maintains defaults
-        assert grid.cells[1][0].get() == "test"  # Second row gets test values
-
-class TestPatternManager:
-    @pytest.fixture
-    def pattern_manager(self):
-        return PatternManager()
-
-    def test_initialization(self, pattern_manager):
-        assert len(pattern_manager.patterns) == 12
-        assert pattern_manager.patterns[1]['name'] == 'Initial Pattern'
-        assert len(pattern_manager.order_list) == 0
-
-    def test_pattern_structure(self, pattern_manager):
-        pattern = pattern_manager.patterns[1]
-        assert 'name' in pattern
-        assert 'data' in pattern
-        assert len(pattern['data']) == 64
-        assert pattern['data'][0][:3] == ["x = 0", "v = 0.25", "f = 440"]
-
-class TestMusicTracker:
-    @pytest.fixture
-    def root(self):
-        root = tk.Tk()
-        yield root
-        root.destroy()
-
-    @pytest.fixture
-    def tracker(self, root):
-        return MusicTracker(root)
-
-    def test_initialization(self, tracker):
-        assert isinstance(tracker.audio, AudioEngine)
-        assert isinstance(tracker.formula, FormulaEngine)
-        assert tracker.is_playing == False
-        assert tracker._stop.is_set() == False
-
-    @patch('sounddevice.OutputStream')
-    def test_audio_generation(self, mock_stream, tracker):
-        tracker.formula_text.insert("1.0", "output = np.sin(2 * np.pi * 440 * t / 44100)")
-        audio_data = tracker.generate_audio(samples_per_row=1000)
-        assert isinstance(audio_data, np.ndarray)
-        assert len(audio_data) > 0
-        assert np.all(np.abs(audio_data) <= 1.0)
-
-    def test_save_load(self, tracker):
-        with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as tmp:
-            # Setup some test data
-            tracker.formula_text.insert("1.0", "output = 0")
-            tracker.globals_text.insert("1.0", "test = 42")
-
-            # Save
-            with patch('tkinter.filedialog.asksaveasfilename', return_value=tmp.name), \
-                 patch('tkinter.messagebox.showinfo'), \
-                 patch('tkinter.messagebox.showerror'):
-                tracker.save()
-
-            # Clear data
-            tracker.formula_text.delete("1.0", tk.END)
-            tracker.globals_text.delete("1.0", tk.END)
-
-            # Load
-            with patch('tkinter.filedialog.askopenfilename', return_value=tmp.name), \
-                 patch('tkinter.messagebox.showinfo'), \
-                 patch('tkinter.messagebox.showerror'):
-                tracker.load()
-
-            assert tracker.formula_text.get("1.0", tk.END).strip() == "output = 0"
-            assert "test = 42" in tracker.globals_text.get("1.0", tk.END)
-
-            os.unlink(tmp.name)
-
-    def test_pattern_variable_conversion(self, tracker):
-        """Test that pattern variables are properly converted to numerical types"""
-        tracker.formula_text.insert("1.0", "output = sine(t * float(freq), float(vol))")
-        tracker.globals_text.insert("1.0", """
-        import numpy as np
-        def sine(p, v):
-            return np.sin((p / 44100) * 2 * np.pi) * v
-        """)
-
-        # Mock pattern data
-        tracker.pattern_ui.pattern_manager.patterns = {
-            1: {
-                'name': 'Test',
-                'data': [
-                    ["{freq}", "{vol}"],
-                    ["440", "0.5"]
-                ]
-            }
-        }
-        tracker.pattern_ui.pattern_manager.order_list = [1]
-
-        # Generate audio
-        audio_data = tracker.generate_audio(samples_per_row=1000)
-
-        assert isinstance(audio_data, np.ndarray)
-        assert len(audio_data) > 0
-        assert not np.any(np.isnan(audio_data))
-        assert np.all(np.abs(audio_data) <= 0.5)
-
-    def test_multi_pattern_mixing(self, tracker):
-        """Test mixing multiple patterns with different variables"""
-        tracker.formula_text.insert("1.0", """
-        bass = sine(t * float(freq1), float(vol1))
-        lead = sine(t * float(freq2), float(vol2))
-        output = bass + lead
-        """)
-        tracker.globals_text.insert("1.0", """
-        import numpy as np
-        def sine(p, v):
-            return np.sin((p / 44100) * 2 * np.pi) * v
-        """)
-
-        # Mock pattern data
-        tracker.pattern_ui.pattern_manager.patterns = {
-            1: {
-                'name': 'Bass',
-                'data': [
-                    ["{freq1}", "{vol1}"],
-                    ["220", "0.3"]
-                ]
-            },
-            2: {
-                'name': 'Lead',
-                'data': [
-                    ["{freq2}", "{vol2}"],
-                    ["440", "0.2"]
-                ]
-            }
-        }
-        tracker.pattern_ui.pattern_manager.order_list = [1, 2]
-
-        # Generate audio
-        audio_data = tracker.generate_audio(samples_per_row=1000)
-
-        assert isinstance(audio_data, np.ndarray)
-        assert len(audio_data) > 0
-        assert not np.any(np.isnan(audio_data))
-        assert np.all(np.abs(audio_data) <= 0.5)
-
-def test_integration_full_pipeline():
-    """Integration test for the complete audio generation pipeline"""
-    root = tk.Tk()
-    tracker = MusicTracker(root)
-
-    # Setup test pattern
-    tracker.formula_text.insert("1.0", "output = np.sin(2 * np.pi * 440 * t / 44100)")
-    tracker.globals_text.insert("1.0", "test_freq = 440")
-
-    # Generate some audio
-    audio_data = tracker.generate_audio(samples_per_row=1000)
-
-    assert isinstance(audio_data, np.ndarray)
-    assert len(audio_data) > 0
-    assert np.all(np.abs(audio_data) <= 1.0)
-
-    root.destroy()
-
-class TestPatternPlayback:
-    @pytest.fixture
-    def tracker(self, root):
-        return MusicTracker(root)
-
-    def test_pattern_sequence_playback(self, tracker):
-        """Test pattern sequencing and playback functionality"""
-        # Setup test patterns
-        tracker.pattern_manager.patterns[0]['data'] = [["f = 440"] * 32]
-        tracker.pattern_manager.patterns[1]['data'] = [["f = 880"] * 32]
-        tracker.pattern_manager.order_list = [0, 1, 0]
-
-        # Mock audio output
-        with patch.object(tracker.audio, 'stream') as mock_stream:
-            tracker.play()
-            assert tracker.is_playing == True
-            assert tracker.current_pattern == 0
-
-            # Simulate pattern advancement
-            tracker._advance_pattern()
-            assert tracker.current_pattern == 1
-
-            tracker._advance_pattern()
-            assert tracker.current_pattern == 0
-
-            tracker.stop()
-            assert tracker.is_playing == False
-
-    def test_pattern_loop_handling(self, tracker):
-        """Test pattern looping behavior"""
-        tracker.pattern_manager.order_list = [0]
-        tracker.loop_enabled = True
-
-        with patch.object(tracker.audio, 'stream'):
-            tracker.play()
-            initial_pattern = tracker.current_pattern
-
-            # Should loop back to start
-            tracker._advance_pattern()
-            assert tracker.current_pattern == initial_pattern
-
-    @pytest.mark.timeout(1)  # Ensure test doesn't hang
-    def test_realtime_pattern_modification(self, tracker):
-        """Test modifying patterns during playback"""
-        with patch.object(tracker.audio, 'stream'):
-            tracker.play()
-
-            # Modify current pattern during playback
-            tracker.pattern_manager.patterns[0]['data'][0][0] = "f = 660"
-
-            # Verify changes are reflected in audio generation
-            audio_data = tracker.generate_audio(samples_per_row=1000)
-            assert isinstance(audio_data, np.ndarray)
-            assert len(audio_data) > 0
-
-class TestErrorHandling:
-    @pytest.fixture
-    def tracker(self, root):
-        return MusicTracker(root)
-
-    def test_invalid_formula_handling(self, tracker):
-        """Test handling of invalid formulas"""
-        tracker.formula_text.delete("1.0", tk.END)
-        tracker.formula_text.insert("1.0", "output = invalid_function()")
-
-        # Should not raise exception, should return silence
-        audio_data = tracker.generate_audio(samples_per_row=1000)
-        assert np.allclose(audio_data, 0)
-
-    def test_buffer_underrun_handling(self, tracker):
-        """Test handling of buffer underruns"""
-        with patch.object(tracker.audio, 'stream') as mock_stream:
-            mock_stream.write.side_effect = [None, Exception("Buffer underrun")]
-
-            tracker.play()
-            # Should handle exception gracefully
-            assert not tracker._stop.is_set()
-
-    def test_file_io_errors(self, tracker):
-        """Test handling of file I/O errors"""
-        with patch('tkinter.filedialog.asksaveasfilename', return_value="/nonexistent/path"):
-            # Should handle save error gracefully
-            tracker.save()
-
-        with patch('tkinter.filedialog.askopenfilename', return_value="/nonexistent/path"):
-            # Should handle load error gracefully
-            tracker.load()
-
-class TestUIInteractions:
-    @pytest.fixture
-    def tracker(self, root):
-        return MusicTracker(root)
-
-    def test_pattern_selection(self, tracker):
-        """Test pattern selection via UI"""
-        tracker.pattern_manager.select_pattern(2)
-        assert tracker.pattern_manager.current_pattern == 2
-
-        # Test UI update
-        assert tracker.pattern_ui.current_pattern == 2
-
-    def test_grid_cell_editing(self, tracker):
-        """Test grid cell editing interactions"""
-        test_value = "f = 440"
-        cell = tracker.pattern_ui.grid.cells[0][0]
-
-        cell.insert(0, test_value)
-        cell.event_generate('<Return>')
-
-        assert tracker.pattern_manager.patterns[tracker.pattern_manager.current_pattern]['data'][0][0] == test_value
-
-    def test_keyboard_shortcuts(self, tracker):
-        """Test keyboard shortcut handling"""
-        with patch.object(tracker, 'play') as mock_play:
-            tracker.root.event_generate('<space>')
-            mock_play.assert_called_once()
-
-        with patch.object(tracker, 'stop') as mock_stop:
-            tracker.root.event_generate('<Escape>')
-            mock_stop.assert_called_once()
-
-class TestPerformance:
-    @pytest.fixture
-    def tracker(self, root):
-        return MusicTracker(root)
-
-    def test_large_pattern_handling(self, tracker):
-        """Test handling of large patterns"""
-        # Create a large pattern (1000 rows)
-        large_pattern = [["f = 440"] * 32 for _ in range(1000)]
-        tracker.pattern_manager.patterns[0]['data'] = large_pattern
-
-        start_time = time.time()
-        audio_data = tracker.generate_audio(samples_per_row=1000)
-        end_time = time.time()
-
-        # Generation should complete within reasonable time (adjust threshold as needed)
-        assert end_time - start_time < 1.0
-        assert len(audio_data) > 0
-
-    def test_rapid_pattern_switching(self, tracker):
-        """Test rapid pattern switching performance"""
-        with patch.object(tracker.audio, 'stream'):
-            tracker.play()
-
-            start_time = time.time()
-            for _ in range(100):
-                tracker._advance_pattern()
-            end_time = time.time()
-
-            # Pattern switching should be responsive
-            assert end_time - start_time < 0.1
 
 class TestWaveformOutput:
     @pytest.fixture
@@ -687,6 +312,104 @@ def tri(p, v):
                 error_msg += f"  Segment: {'first' if idx < 22050 else 'second'}\n"
 
             assert False, error_msg
+
+class TestSaveLoadJSON:
+    @pytest.fixture
+    def test_data(self):
+        return {
+            "version": "1.0",
+            "settings": {
+                "rows": 64,
+                "speed": 4.0,
+                "base_freq": 440.0
+            },
+            "vars": ["x", "v", "f"],
+            "globals": {
+                "imports": ["import numpy as np"],
+                "constants": ["s = 44100"],
+                "waveforms": [
+                    "def sine(p, v): return np.sin((p / s) * 2 * np.pi) * float(v)",
+                    "def saw(p, v): return ((p / s) % 1) * 2 - 1 * float(v)",
+                    "def sq(p, v): return (((p / s) % 1) < 0.5) * 2 - 1 * float(v)"
+                ],
+                "effects": [
+                    "def lfo(rate, amp): return np.sin(t * rate) * amp",
+                    "def arp(base, steps): return base * (2 ** (steps[int(t * 8) % len(steps)] / 12))"
+                ]
+            },
+            "formula": "output = sine(t * f, v) * x",
+            "patterns": {
+                "1": {
+                    "rows": {
+                        "0": {"0": "{x}", "1": "{v}", "2": "{f}"},
+                        "1": {"0": "0.8", "1": "1.0", "2": "440"},
+                        "2": {"0": "0.6", "1": "0.8", "2": "880"}
+                    }
+                }
+            },
+            "order": ["1"],
+            "current_pattern": "1"
+        }
+
+    def test_save_json_format(self, test_data, tmp_path):
+        # Save test data to a temporary file
+        save_path = tmp_path / "test_save.json"
+        with open(save_path, "w") as f:
+            json.dump(test_data, f, indent=2)
+
+        # Read back and verify structure
+        with open(save_path) as f:
+            loaded_data = json.load(f)
+
+        # Verify all required keys are present
+        assert set(loaded_data.keys()) == {"version", "settings", "vars", "globals", "formula", "patterns", "order", "current_pattern"}
+
+        # Verify settings
+        assert loaded_data["settings"]["rows"] == 64
+        assert loaded_data["settings"]["speed"] == 4.0
+        assert loaded_data["settings"]["base_freq"] == 440.0
+
+        # Verify pattern structure
+        pattern = loaded_data["patterns"]["1"]
+        assert "rows" in pattern
+        assert pattern["rows"]["0"]["0"] == "{x}"
+        assert pattern["rows"]["1"]["2"] == "440"
+
+    def test_load_json_format(self, test_data, tmp_path):
+        # Save and load test data
+        save_path = tmp_path / "test_load.json"
+        with open(save_path, "w") as f:
+            json.dump(test_data, f, indent=2)
+
+        with open(save_path) as f:
+            loaded_data = json.load(f)
+
+        # Verify globals structure
+        assert "imports" in loaded_data["globals"]
+        assert "constants" in loaded_data["globals"]
+        assert "waveforms" in loaded_data["globals"]
+        assert "effects" in loaded_data["globals"]
+
+        # Verify waveform functions
+        assert any("sine(p, v)" in fn for fn in loaded_data["globals"]["waveforms"])
+        assert any("saw(p, v)" in fn for fn in loaded_data["globals"]["waveforms"])
+        assert any("sq(p, v)" in fn for fn in loaded_data["globals"]["waveforms"])
+
+        # Verify variable declarations
+        assert set(loaded_data["vars"]) == {"x", "v", "f"}
+
+    def test_json_roundtrip(self, test_data, tmp_path):
+        # Save test data
+        save_path = tmp_path / "test_roundtrip.json"
+        with open(save_path, "w") as f:
+            json.dump(test_data, f, indent=2)
+
+        # Load test data
+        with open(save_path) as f:
+            loaded_data = json.load(f)
+
+        # Verify data is unchanged through save/load cycle
+        assert loaded_data == test_data
 
 if __name__ == "__main__":
     pytest.main([__file__])

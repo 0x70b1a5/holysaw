@@ -67,23 +67,62 @@ class FormulaEngine:
     def set_phase(self, name: str, value: float):
         self.phases[name] = value % 1
 
+    def generate_voices(self, t_start: int, num_samples: int, vars_dict: Dict) -> np.ndarray:
+        """Generate audio for all defined voices in the pattern"""
+        output = np.zeros(num_samples, dtype=np.float32)
+    
+        # Find all defined voices by looking for pitch_N variables
+        voice_nums = set()
+        for var in vars_dict:
+            if var.starts_with('pitch') and var[6:].isdigit():
+                voice_nums.add(int(var[6:]))
+    
+        for i in sorted(voice_nums):
+            try:
+                # Get basic voice parameters
+                pitch = float(vars_dict.get(f'pitch_{i}', 0))
+                vol = float(vars_dict.get(f'vol_{i}', 0))
+    
+                # Get wave function - ensure we get the actual function
+                inst_name = str(vars_dict.get(f'inst_{i}', 'sq'))
+                wave_func = globals().get(inst_name, globals().get('sq'))
+    
+                # Get effect function - ensure we get the actual function
+                fx_name = str(vars_dict.get(f'fx{i}', ''))
+                fx_func_name = f'fx{fx_name}' if fx_name else 'fx_plain'
+                fx_func = globals().get(fx_func_name, globals().get('fx_plain'))
+    
+                # Gather effect parameters
+                fx_params = {}
+                for param in ['rate', 'depth', 'speed', 'note']:
+                    param_name = f'{param}_{i}'
+                    if param_name in vars_dict:
+                        fx_params[param] = float(vars_dict[param_name])
+                        voice = fx_func(wave_func, np.exp2(pitch/1200)*t, vol, **fx_params)
+                output += voice
+    
+            except Exception as e:
+                print(f"Error processing voice {i}: {e}")
+                continue
+    
+        return output
+
     def generate_samples(self, formula: str, t_start: int, num_samples: int, vars_dict: Dict) -> np.ndarray:
         if not formula.strip(): 
             return np.zeros(num_samples, dtype=np.float32)
         try:
+            # If formula is just "output = generate_voices()", handle specially
+            if formula.strip() == "output = generate_voices()":
+                return self.generate_voices(t_start, num_samples, vars_dict)
+                
+            # Otherwise process as before
             t = np.linspace(t_start, t_start + num_samples - 1, num_samples, dtype=np.float32)
-            # Update t in globals before executing formula
             self.globals['t'] = t
             local_vars = {**self.globals, **vars_dict, 't': t}
-
+            
             numpy_formula = formula.replace('math.', 'np.')
-
-            exec(numpy_formula, self.globals, local_vars)            
-            # Replace scalar math functions with numpy equivalents
-            numpy_formula = formula.replace('math.', 'np.')
-
             exec(numpy_formula, self.globals, local_vars)
-
+            
             result = local_vars.get('output', np.zeros(num_samples))
             return np.asarray(result, dtype=np.float32)
 
