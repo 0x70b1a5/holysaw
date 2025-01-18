@@ -317,8 +317,36 @@ class Grid:
             for col, cell in enumerate(row):
                 value = cell.get().strip()
                 if value:
-                    playback_value = self.get_playback_value(value, col)
-                    row_values.append(playback_value)
+                    # Handle {var} notation
+                    var_match = re.match(r'^{(\w+)}$', value)
+                    if var_match:
+                        var_name = var_match.group(1)
+                        self.column_vars[col] = var_name
+                        row_values.append("")  # Skip this cell in playback
+                        continue
+    
+                    # Handle specific variables that need special treatment
+                    if col in self.column_vars:
+                        var_name = self.column_vars[col]
+    
+                        # Handle compound operators
+                        compound_match = re.match(r'^([+-/*])=(\d+.?\d*)$', value)
+                        if compound_match:
+                            op, num = compound_match.groups()
+                            row_values.append(f"{var_name} = {var_name} {op} {num}")
+                        else:
+                            # Handle speed variable specially
+                            if var_name == 'speed':
+                                try:
+                                    speed_val = float(value)
+                                    row_values.append(f"speed = {speed_val}")
+                                except ValueError:
+                                    row_values.append("")
+                            else:
+                                # Handle normal assignment
+                                row_values.append(f"{var_name} = {value}")
+                    else:
+                        row_values.append(value)  # Default case: use value as-is
                 else:
                     row_values.append("")
             result.append(row_values)

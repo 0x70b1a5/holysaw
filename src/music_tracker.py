@@ -63,14 +63,25 @@ class MusicTracker:
         ttk.Button(globals_frame, text="Edit Global Variables",
                   command=self.show_globals_dialog).pack()
 
+        # Initialize globals text with content from globals.py
         self.globals_text = tk.Text(globals_frame)
         self.globals_text.pack_forget()
+        
+        # Load default globals from globals.py
+        try:
+            with open('src/globals.py', 'r') as f:
+                default_globals = f.read()
+            self.globals_text.insert("1.0", default_globals)
+        except Exception as e:
+            logger.error(f"Error loading globals.py: {e}")
+            self.globals_text.insert("1.0", "")
 
         # Formula section
         formula_frame = ttk.LabelFrame(self.top_frame, text="Output Formula", padding=5)
         formula_frame.pack(fill=tk.X, pady=(0, 10))
         self.formula_text = tk.Text(formula_frame, height=3)
         self.formula_text.pack(fill=tk.X)
+        self.formula_text.insert("1.0", "output = vibrato(saw,cents(x)*t,v,r,d)")
 
     def _setup_grid_frame(self, main_frame):
         scroll_frame = ttk.Frame(main_frame)
@@ -129,6 +140,8 @@ class MusicTracker:
                   command=self.save).pack(side=tk.LEFT, padx=2)
         ttk.Button(controls, text="Load",
                   command=self.load).pack(side=tk.LEFT, padx=2)
+        ttk.Button(controls, text="New",
+                  command=self.reset_all).pack(side=tk.LEFT, padx=2)
 
     def cleanup_and_close(self):
         self._stop.set()
@@ -137,6 +150,37 @@ class MusicTracker:
             self.audio.stream.stop()
             self.audio.stream.close()
         self.root.destroy()
+
+    def reset_all(self):
+        """Reset everything to initial state"""
+        # Reset globals
+        if hasattr(self, 'globals_text'):
+            self.globals_text.delete("1.0", tk.END)
+        
+        # Reset formula
+        self.formula_text.delete("1.0", tk.END)
+        
+        # Reset grid
+        self.rows_entry.delete(0, tk.END)
+        self.rows_entry.insert(0, "64")
+        self.speed_entry.delete(0, tk.END)
+        self.speed_entry.insert(0, "4")
+        
+        # Reset pattern manager
+        self.pattern_ui.pattern_manager.patterns.clear()
+        self.pattern_ui.pattern_manager.order_list.clear()
+        
+        # Reset pattern UI
+        self.pattern_ui.order_listbox.delete(0, tk.END)
+        self.pattern_ui.current_pattern_number.set("1")
+        self.pattern_ui.pattern_name_entry.delete(0, tk.END)
+        
+        # Initialize with first pattern
+        self.pattern_ui.pattern_manager.order_list.append(1)
+        self.pattern_ui.order_listbox.insert(tk.END, "1: Initial Pattern")
+        
+        # Update grid
+        self.update_grid()
 
     def show_globals_dialog(self):
         """Show global variables in a popup dialog"""
@@ -167,31 +211,14 @@ class MusicTracker:
         current_t = self.last_t
         logger.debug(f"Starting from t={current_t}")
 
-        # Collect all possible variables from all sources
-        all_variables = set()
-
-        # From formula
-        formula_text = self.formula_text.get("1.0", tk.END)
-        logger.debug(f"Formula text: {formula_text}")
-        all_variables.update(re.findall(r'\b([a-zA-Z_][a-zA-Z0-9_]*)\b', formula_text))
-
-        # From globals
-        globals_text = self.globals_text.get("1.0", tk.END)
-        logger.debug(f"Globals text length: {len(globals_text)}")
-        all_variables.update(re.findall(r'\b([a-zA-Z_][a-zA-Z0-9_]*)\b', globals_text))
-
-        # From curly braces in grid
-        for row in self.grid.cells:
-            for cell in row:
-                value = cell.get().strip()
-                var_match = re.match(r'^{(\w+)}$', value)
-                if var_match:
-                    all_variables.add(var_match.group(1))
-
-        logger.debug(f"All variables found: {all_variables}")
-
         # Initialize persistent vars with defaults
-        persistent_vars_dict = {var: 0 for var in all_variables}
+        persistent_vars_dict = {
+            't': 0,  # time
+            'r': 5,  # default rate for modulation effects
+            'd': 0.1,  # default depth for modulation effects
+            'f': 440,  # default frequency
+            's': 44100,  # sample rate
+        }
         persistent_vars_dict.update(self.formula.globals)
         try:
             persistent_vars_dict['speed'] = float(self.speed_entry.get() or 4)
@@ -201,6 +228,7 @@ class MusicTracker:
 
         # Update globals before generation
         logger.info("Updating formula engine globals")
+        globals_text = self.globals_text.get("1.0", tk.END)
         self.formula.update_globals(globals_text)
         logger.debug(f"Formula engine globals: {list(self.formula.globals.keys())}")
 
@@ -247,57 +275,54 @@ class MusicTracker:
                     row_speed = 4.0
                     row_samples = int(44100 / row_speed) if samples_per_row is None else samples_per_row
 
-                if has_updates:
-                    try:
-                        # Create time array for this row
-                        t = np.linspace(current_t, current_t + row_samples - 1, row_samples, dtype=np.float32)
-                        logger.debug(f"Time array: {t.shape}, range: [{t[0]}, {t[-1]}]")
+                try:
+                    # Create time array for this row
+                    t = np.linspace(current_t, current_t + row_samples - 1, row_samples, dtype=np.float32)
+                    logger.debug(f"Time array: {t.shape}, range: [{t[0]}, {t[-1]}]")
 
-                        # Create interpolation factors
-                        interp = np.linspace(0, 1, row_samples, dtype=np.float32)
+                    # Create interpolation factors
+                    interp = np.linspace(0, 1, row_samples, dtype=np.float32)
 
-                        # Interpolate numerical variables
-                        interpolated_vars = {}
-                        for var in row_vars_dict:
-                            if var in persistent_vars_dict and isinstance(row_vars_dict[var], (int, float)):
-                                start_val = float(persistent_vars_dict[var])
-                                end_val = float(row_vars_dict[var])
-                                interpolated_vals = start_val + (end_val - start_val) * interp
-                                interpolated_vars[var] = interpolated_vals
-                            else:
-                                interpolated_vars[var] = row_vars_dict[var]
-
-                        # Update t in both dictionaries
-                        interpolated_vars['t'] = t
-                        self.formula.globals['t'] = t
-
-                        # Restore function references
-                        for name, func in function_refs.items():
-                            interpolated_vars[name] = func
-                            self.formula.globals[name] = func
-
-                        # Execute formula with interpolated variables
-                        local_vars = {**self.formula.globals, **interpolated_vars}
-                        logger.debug(f"Executing formula with variables: {list(local_vars.keys())}")
-                        logger.debug(f"Formula: {formula_text}")
-                        exec(formula_text, self.formula.globals, local_vars)
-
-                        if 'output' in local_vars:
-                            output = local_vars['output']
-                            logger.debug(f"Output type: {type(output)}, shape: {output.shape if isinstance(output, np.ndarray) else 'scalar'}")
-                            if isinstance(output, np.ndarray):
-                                buffer = np.append(buffer, output.astype(np.float32))
-                            else:
-                                buffer = np.append(buffer, np.full(row_samples, float(output), dtype=np.float32))
+                    # Interpolate numerical variables
+                    interpolated_vars = {}
+                    for var in row_vars_dict:
+                        if var in persistent_vars_dict and isinstance(row_vars_dict[var], (int, float)):
+                            start_val = float(persistent_vars_dict[var])
+                            end_val = float(row_vars_dict[var])
+                            interpolated_vals = start_val + (end_val - start_val) * interp
+                            interpolated_vars[var] = interpolated_vals
                         else:
-                            logger.warning("No output variable found in formula execution")
-                            buffer = np.append(buffer, np.zeros(row_samples, dtype=np.float32))
+                            interpolated_vars[var] = row_vars_dict[var]
 
-                    except Exception as e:
-                        logger.error(f"Error generating audio: {e}", exc_info=True)
+                    # Update t in both dictionaries
+                    interpolated_vars['t'] = t
+                    self.formula.globals['t'] = t
+
+                    # Restore function references
+                    for name, func in function_refs.items():
+                        interpolated_vars[name] = func
+                        self.formula.globals[name] = func
+
+                    # Execute formula with interpolated variables
+                    formula_text = self.formula_text.get("1.0", tk.END)
+                    local_vars = {**self.formula.globals, **interpolated_vars}
+                    logger.debug(f"Executing formula with variables: {list(local_vars.keys())}")
+                    logger.debug(f"Formula: {formula_text}")
+                    exec(formula_text, self.formula.globals, local_vars)
+
+                    if 'output' in local_vars:
+                        output = local_vars['output']
+                        logger.debug(f"Output type: {type(output)}, shape: {output.shape if isinstance(output, np.ndarray) else 'scalar'}")
+                        if isinstance(output, np.ndarray):
+                            buffer = np.append(buffer, output.astype(np.float32))
+                        else:
+                            buffer = np.append(buffer, np.full(row_samples, float(output), dtype=np.float32))
+                    else:
+                        logger.warning("No output variable found in formula execution")
                         buffer = np.append(buffer, np.zeros(row_samples, dtype=np.float32))
-                else:
-                    logger.debug("No updates in row, generating silence")
+
+                except Exception as e:
+                    logger.error(f"Error generating audio: {e}", exc_info=True)
                     buffer = np.append(buffer, np.zeros(row_samples, dtype=np.float32))
 
                 current_t += row_samples

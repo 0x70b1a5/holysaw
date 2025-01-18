@@ -1,0 +1,237 @@
+{
+    "version": "1.0",
+    "name": "Three Squares",
+    "description": "A demonstration of three square wave oscillators with various effects and modulations",
+    "settings": {
+        "bpm": 120,
+        "lpb": 4,
+        "sample_rate": 44100,
+        "buffer_size": 2048,
+        "rows": 64,
+        "speed": 8.0,
+        "base_freq": 440.0
+    },
+    "vars": [
+        "pitch_1",
+        "pitch_2",
+        "pitch_3",
+        "v",
+        "v2",
+        "v3",
+        "inst_1",
+        "inst_2",
+        "inst_3",
+        "fx_1",
+        "fx_2",
+        "fx_3",
+        "r",
+        "r2",
+        "r3",
+        "d",
+        "d2",
+        "d3"
+    ],
+    "globals": {
+        "imports": [
+            "numpy as np"
+        ],
+        "constants": {
+            "s": "44100"
+        },
+        "waveforms": {
+            "sq": "def sq(p, v, duty=0.5):\n    phase = (p.astype(np.float32) / 44100) % 1\n    return (((phase < float(duty)) * 2 - 1) * float(v)).astype(np.float32)",
+            "saw": "def saw(p, v):\n    phase = (p.astype(np.float32) / 44100) % 1\n    return ((phase * 2 - 1) * float(v)).astype(np.float32)",
+            "acid": "def acid(p, v, cutoff, res=0.8):\n    sig = ((p.astype(np.float32) / 44100) % 1) * 2 - 1\n    filt = np.tanh(float(res) * np.sin(2 * np.pi * float(cutoff) * t / 44100))\n    return (sig * filt * float(v)).astype(np.float32)"
+        },
+        "effects": {
+            "plain": "def plain(wave_func, p, v):\n    return wave_func(p, v)",
+            "vib": "def vib(wave_func, p, v, rate=5, depth=0.1):\n    dp = p - np.roll(p, 1)\n    dp[0] = dp[1]\n    mod = depth * np.sin(2 * np.pi * rate * p/44100)\n    phase = np.cumsum(dp * (1 + mod))\n    return wave_func(phase, v)",
+            "tr": "def tr(wave_func, p, v, rate=5, depth=0.1):\n    dp = p - np.roll(p, 1)\n    dp[0] = dp[1]\n    mod = depth * ((np.sin(2 * np.pi * rate * p/44100) > 0) * 2 - 1)\n    phase = np.cumsum(dp * (1 + mod))\n    return wave_func(phase, v)"
+        },
+        "helpers": {
+            "cents": "def cents(c): return 2**(c/12)"
+        }
+    },
+    "formula": "output = (\n    apply_effect(fx_1, inst_1, settings['base_freq'] * cents(pitch_1)*t, v, rate=r, depth=d) +\n    apply_effect(fx_2, inst_2, settings['base_freq'] * cents(pitch_2)*t, v2, rate=r2, depth=d2) +\n    apply_effect(fx_3, inst_3, settings['base_freq'] * cents(pitch_3)*t, v3, rate=r3, depth=d3)\n)",
+    "patterns": {
+        "1": {
+            "name": "Main Pattern",
+            "rows": {
+                "0": {
+                    "pitch_1": "5",
+                    "v": "0.1",
+                    "pitch_2": "12",
+                    "v2": "0.1",
+                    "inst_1": "\"sq\"",
+                    "inst_2": "\"sq\"",
+                    "inst_3": "\"sq\"",
+                    "fx_1": "\"plain\"",
+                    "fx_2": "\"plain\"",
+                    "fx_3": "\"plain\""
+                },
+                "1": {
+                    "pitch_1": "10",
+                    "v": "0.15",
+                    "pitch_2": "17",
+                    "v2": "0.15"
+                },
+                "2": {
+                    "pitch_1": "15",
+                    "v": "0.2",
+                    "pitch_2": "22",
+                    "v2": "0.2"
+                },
+                "3": {
+                    "pitch_1": "20",
+                    "pitch_2": "27"
+                },
+                "4": {
+                    "v": "0",
+                    "v2": "0",
+                    "pitch_3": "7",
+                    "v3": "0.2"
+                },
+                "5": {
+                    "pitch_3": "9"
+                },
+                "6": {
+                    "r3": "3",
+                    "d3": "0.02"
+                },
+                "7": {
+                    "r3": "4"
+                },
+                "8": {
+                    "r3": "5"
+                },
+                "9": {
+                    "pitch_3": "11",
+                    "r3": "0",
+                    "d3": "0"
+                },
+                "10": {
+                    "v3": "0"
+                },
+                "11": {
+                    "pitch_3": "13",
+                    "v3": "0.2"
+                },
+                "12": {
+                    "pitch_3": "15",
+                    "r3": "2",
+                    "d3": "0.02"
+                },
+                "13": {
+                    "pitch_3": "13"
+                },
+                "14": {
+                    "v3": "0"
+                },
+                "15": {
+                    "pitch_3": "11",
+                    "v3": "0.2",
+                    "r3": "0",
+                    "d3": "0"
+                },
+                "16": {
+                    "pitch_3": "6",
+                    "v3": "0.2"
+                },
+                "17": {
+                    "v3": "0"
+                },
+                "18": {
+                    "pitch_3": "9",
+                    "v3": "0.2"
+                },
+                "19": {
+                    "r3": "2",
+                    "d3": "0.2"
+                },
+                "20": {
+                    "pitch_3": "11",
+                    "v3": "0.2",
+                    "r3": "0",
+                    "d3": "0"
+                },
+                "21": {
+                    "v3": "0"
+                },
+                "22": {
+                    "pitch_3": "13",
+                    "v3": "0.2"
+                },
+                "23": {
+                    "pitch_3": "15"
+                },
+                "24": {
+                    "pitch_3": "13"
+                },
+                "25": {
+                    "v3": "0"
+                },
+                "26": {
+                    "pitch_3": "11",
+                    "v3": "0.2"
+                },
+                "27": {
+                    "v3": "0"
+                },
+                "28": {
+                    "pitch_3": "6",
+                    "v3": "0.2"
+                },
+                "29": {
+                    "v3": "0"
+                },
+                "30": {
+                    "pitch_3": "9",
+                    "v3": "0.2"
+                },
+                "31": {
+                    "r3": "2",
+                    "d3": "0.1"
+                },
+                "32": {
+                    "pitch_3": "11",
+                    "r3": "0",
+                    "d3": "0"
+                },
+                "33": {
+                    "v3": "0"
+                },
+                "34": {
+                    "pitch_3": "9",
+                    "v3": "0.2"
+                },
+                "35": {
+                    "pitch_3": "11"
+                },
+                "36": {
+                    "pitch_3": "13"
+                },
+                "37": {
+                    "pitch_3": "15"
+                },
+                "38": {
+                    "pitch_3": "16"
+                },
+                "39": {
+                    "pitch_3": "15"
+                },
+                "40": {
+                    "pitch_3": "16"
+                },
+                "41": {
+                    "r3": "4",
+                    "d3": "0.059",
+                    "fx_3": "\"tr\""
+                }
+            }
+        }
+    },
+    "order": [
+        1
+    ],
+    "current_pattern": "1"
+}

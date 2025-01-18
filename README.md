@@ -53,9 +53,9 @@ Follow these steps exactly in order:
     .venv\Scripts\activate
     ```
 
-    After activation, your prompt should show `(.venv)` at the beginning.
+    After activation, your prompt should show `(.venv)` or `(.holysaw)` at the beginning.
 
-5. Install Python packages (make sure you see (.venv) in your prompt first!):
+5. Install Python packages (make sure you see (.venv) or (.holysaw) in your prompt first!):
     ```bash
     uv pip install numpy sounddevice pytest
     ```
