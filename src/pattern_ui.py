@@ -223,5 +223,3 @@ class PatternUI:
             del self.pattern_manager.order_list[index]
         except IndexError:
             messagebox.showwarning("No Selection", "Select a pattern to remove")
-
-    # ... [Rest of PatternUI class methods] ...

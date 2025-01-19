@@ -4,9 +4,10 @@ import re
 from typing import List, Dict, Optional
 
 class Grid:
-    def __init__(self, parent: ttk.Frame):
+    def __init__(self, parent: ttk.Frame, canvas: tk.Canvas):
         self.parent = parent
         self.grid_frame = parent
+        self.canvas = canvas  # Store canvas reference
         self.cells: List[List[ttk.Entry]] = []
         self.current_row = 0
         self.current_col = 0
@@ -165,6 +166,23 @@ class Grid:
             self.current_col = col
             self.show_cell_content(self.cells[row][col])
             self.show_indicator()
+            self.center_on_cell(row, col)  # Add this line
+
+    def center_on_cell(self, row, col):
+        self.grid_frame.update_idletasks()
+        cell = self.cells[row][col]
+        
+        # Get cell position relative to canvas
+        cell_y = cell.winfo_y()
+        
+        # Get canvas viewport height
+        canvas_height = self.canvas.winfo_height()
+        
+        # Calculate position to center cell
+        center_position = (cell_y - (canvas_height/2)) / self.grid_frame.winfo_height()
+        
+        # Move canvas to center on cell
+        self.canvas.yview_moveto(max(0, min(1, center_position)))
 
     def enter_edit_mode(self, event=None):
         """Enter edit mode (red) when preview text is clicked"""
@@ -176,7 +194,13 @@ class Grid:
     def handle_edit_keypress(self, event):
         """Handle keypress events in red mode"""
         if self.editing:
+            # Don't treat cursor movement as edits
+            if event.keysym in ('Left', 'Right', 'Home', 'End'):
+                return None
+                
+            # Schedule update after other keypresses
             self.preview_text.after(1, self.update_cell_from_preview)
+            
             if event.keysym == 'Return':
                 self.finish_editing()
                 return "break"
@@ -224,33 +248,52 @@ class Grid:
         self.current_cell = cell
         if self.editing:
             return
+    
+        """Store current cursor position"""
+        cursor_pos = self.preview_text.index(tk.INSERT)
+    
         self.preview_text.delete(0, tk.END)
         self.preview_text.insert(0, cell.get())
+    
+        """Restore cursor position if within bounds"""
+        if cursor_pos <= len(cell.get()):
+            self.preview_text.icursor(cursor_pos)
+
 
     def update_cell_from_preview(self):
         """Update the current cell content from the preview box while editing"""
         if self.editing and hasattr(self, 'current_cell'):
+            # Store cursor position before update
+            cursor_pos = self.preview_text.index(tk.INSERT)
+            
             new_value = self.preview_text.get()
             self.current_cell.delete(0, tk.END)
             self.current_cell.insert(0, new_value)
-            self._on_cell_edit(self.current_row, self.current_col)
+            
+            # Restore cursor position
+            self.preview_text.icursor(cursor_pos)
+            
+            if hasattr(self.parent, 'on_grid_edit') and callable(self.parent.on_grid_edit):
+                self.parent.on_grid_edit()
 
     def _on_cell_edit(self, row: int, col: int):
         """Process cell edits and update preview"""
         if not self.cells[row][col]:
             return
-
+    
         value = self.cells[row][col].get().strip()
-
+    
         var_match = re.match(r'^{(\w+)}$', value)
         if var_match:
             var_name = var_match.group(1)
             self.column_vars[col] = var_name
-
+    
+        # Update preview if this is the current cell
         if row == self.current_row and col == self.current_col:
             self.preview_text.delete(0, tk.END)
             self.preview_text.insert(0, value)
-
+    
+        # Always trigger autosave
         if hasattr(self.parent, 'on_grid_edit') and callable(self.parent.on_grid_edit):
             self.parent.on_grid_edit()
 

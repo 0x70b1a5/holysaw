@@ -109,7 +109,7 @@ class MusicTracker:
         self.canvas.create_window((0, 0), window=self.grid_frame, anchor='nw')
 
         # Create Grid
-        self.grid = Grid(self.grid_frame)
+        self.grid = Grid(self.grid_frame, self.canvas)
 
     def _setup_controls(self, main_frame):
         controls = ttk.Frame(main_frame)
@@ -283,16 +283,8 @@ class MusicTracker:
                     # Create interpolation factors
                     interp = np.linspace(0, 1, row_samples, dtype=np.float32)
 
-                    # Interpolate numerical variables
-                    interpolated_vars = {}
-                    for var in row_vars_dict:
-                        if var in persistent_vars_dict and isinstance(row_vars_dict[var], (int, float)):
-                            start_val = float(persistent_vars_dict[var])
-                            end_val = float(row_vars_dict[var])
-                            interpolated_vals = start_val + (end_val - start_val) * interp
-                            interpolated_vars[var] = interpolated_vals
-                        else:
-                            interpolated_vars[var] = row_vars_dict[var]
+                    # Just use the raw values without interpolation
+                    interpolated_vars = row_vars_dict.copy()
 
                     # Update t in both dictionaries
                     interpolated_vars['t'] = t
@@ -358,6 +350,24 @@ class MusicTracker:
             logger.info("Cleaning up playback")
             self.cleanup_playback()
 
+    def highlight_current_row(self, pattern_num, row_num):
+        # Clear previous highlight
+        for row in self.grid.cells:
+            for cell in row:
+                cell.configure(background='')
+        
+        # Highlight current row
+        if 0 <= row_num < len(self.grid.cells):
+            for cell in self.grid.cells[row_num]:
+                cell.configure(background='#ff6b6b')
+    
+        # Highlight current pattern in order list
+        self.pattern_ui.order_listbox.selection_clear(0, tk.END)
+        for i, pat in enumerate(self.pattern_ui.pattern_manager.order_list):
+            if pat == pattern_num:
+                self.pattern_ui.order_listbox.selection_set(i)
+                self.pattern_ui.order_listbox.see(i)
+
     def toggle_play(self):
         logger.info(f"Toggle play called. Current state: {self.is_playing}")
         self.formula.update_globals(self.globals_text.get("1.0", tk.END))
@@ -401,12 +411,30 @@ class MusicTracker:
                 imports = re.findall(r'^import\s+(.+)$', globals_text, re.MULTILINE)
 
                 # Extract constants (assuming they're defined as NAME = VALUE)
+                
+                # Extract constants (handling multi-line dictionaries)
                 constants = {}
+                in_constant = False
+                current_constant = []
+                constant_name = None
+                
                 for line in globals_text.split('\n'):
-                    const_match = re.match(r'^([A-Z_][A-Z0-9_]*)\s*=\s*(.+)$', line)
-                    if const_match:
-                        name, value = const_match.groups()
-                        constants[name.lower()] = value.strip()
+                    if not in_constant:
+                        const_match = re.match(r'^([A-Z_][A-Z0-9_]*)\s*=\s*(.+)$', line)
+                        if const_match:
+                            constant_name = const_match.group(1)
+                            if '{' in line and '}' not in line:  # Start of multi-line dict
+                                in_constant = True
+                                current_constant = [line]
+                            else:  # Single line constant
+                                constants[constant_name.lower()] = const_match.group(2).strip()
+                    else:
+                        current_constant.append(line)
+                        if '}' in line:  # End of dictionary
+                            in_constant = False
+                            constants[constant_name.lower()] = '\n'.join(current_constant)
+                            current_constant = []
+                            constant_name = None
 
                 # Extract function definitions
                 waveforms = {}
@@ -488,6 +516,9 @@ class MusicTracker:
         try:
             path = filedialog.askopenfilename(filetypes=[("JSON", "*.json")])
             if path:
+                # Clear existing state first
+                self.clear_state()
+                
                 with open(path) as f:
                     state = json.load(f)
 
@@ -607,6 +638,28 @@ class MusicTracker:
 
         except Exception as e:
             messagebox.showerror("Export Error", str(e))
+
+    def clear_state(self):
+        # Clear patterns
+        self.pattern_ui.pattern_manager.patterns.clear()
+        self.pattern_ui.pattern_manager.order_list.clear()
+        
+        # Clear UI elements
+        self.pattern_ui.order_listbox.delete(0, tk.END)
+        self.pattern_ui.pattern_name_entry.delete(0, tk.END)
+        
+        # Clear grid
+        for row in self.grid.cells:
+            for cell in row:
+                cell.delete(0, tk.END)
+                
+        # Clear text fields
+        self.formula_text.delete("1.0", tk.END)
+        self.globals_text.delete("1.0", tk.END)
+        
+        # Reset entries
+        self.rows_entry.delete(0, tk.END)
+        self.speed_entry.delete(0, tk.END)
 
     def update_grid(self):
         """Update the grid with the current pattern data"""
